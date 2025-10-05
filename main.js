@@ -151,15 +151,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (controls) {
     controls.addEventListener('click', (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLButtonElement)) {
-        return;
-      }
+      const el = event.target;
+      if (!(el instanceof Element)) return;
 
-      const action = target.dataset.action;
-      if (!action) {
-        return;
-      }
+      const btn = el.closest('button[data-action]');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      if (!action) return;
 
       if (action === 'play' && audio) {
         if (audio.paused) {
