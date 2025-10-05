@@ -1,4 +1,6 @@
 /* Desert Drive static viewport */
+const MEDIA_BASE = 'https://media.tymmop.com/portals/';
+
 window.addEventListener('DOMContentLoaded', () => {
   console.info('Desert Drive static view v20241005');
 
@@ -14,12 +16,12 @@ window.addEventListener('DOMContentLoaded', () => {
   const artistLabel = document.querySelector('.music-box__artist');
 
   const tracks = [
-    { title: 'Sand Drive', file: 'Reference/01. n tro.wav', artist: 'tymmo p' },
-    { title: 'International Desert Drive', file: 'Reference/02. trouble.wav', artist: 'tymmo p' },
-    { title: 'Floating Airy Helicopty Ride', file: 'Reference/03. double.wav', artist: 'tymmo p' },
-    { title: '99 to Infinity', file: 'Reference/04. infinity.mp3', artist: 'tymmo p' },
-    { title: 'Rooftop Fireworks', file: 'Reference/05. test.wav', artist: 'tymmo p' },
-    { title: 'Things Just R', file: 'Reference/06.justr.wav', artist: 'tymmo p' }
+    { title: 'Sand Drive', file: '01-ntro.mp3', artist: 'tymmo p' },
+    { title: 'International Desert Drive', file: '02-trouble.mp3', artist: 'tymmo p' },
+    { title: 'Floating Airy Helicopty Ride', file: '03-double.mp3', artist: 'tymmo p' },
+    { title: '99 to Infinity', file: '04-infinity.mp3', artist: 'tymmo p' },
+    { title: 'Rooftop Fireworks', file: '05-rooftop.mp3', artist: 'tymmo p' },
+    { title: 'Things Just R', file: '06-justr.mp3', artist: 'tymmo p' }
   ];
 
   let currentTrackIndex = 0;
@@ -98,7 +100,7 @@ window.addEventListener('DOMContentLoaded', () => {
       updateTitleMarquee();
     });
 
-    const encodedSrc = encodeURI(track.file);
+    const encodedSrc = encodeURI(`${MEDIA_BASE}${track.file}`);
     const wasPlaying = !audio.paused && !audio.ended;
 
     audio.src = encodedSrc;
