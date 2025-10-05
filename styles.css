@@ -17,13 +17,19 @@ body {
   margin: 0;
   background: var(--bg-dark);
   color: var(--text-light);
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body {
   line-height: 1.6;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: clamp(16px, 5vw, 48px);
 }
 
 .scroll-stage {
@@ -33,12 +39,16 @@ body {
   align-items: center;
   justify-content: center;
   background: #000;
+  width: 100%;
+  max-width: 1536px;
 }
 
 .scene {
   position: relative;
-  width: 1536px;
-  height: 1024px;
+  width: min(100%, 1536px);
+  aspect-ratio: 3 / 2;
+  height: auto;
+  font-size: clamp(4px, 1.0417vw, 16px);
   overflow: hidden;
 }
 
@@ -79,14 +89,14 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 14px;
-  padding: 18px 22px 16px;
+  gap: 0.875em;
+  padding: 1.125em 1.375em 1em;
   background: linear-gradient(160deg, #61270f 0%, #d0621b 100%);
-  border-radius: 22px;
-  border: 1px solid #ffc35e;
+  border-radius: 1.375em;
+  border: 0.0625em solid #ffc35e;
   color: #ffe9cc;
   z-index: 5;
-  box-shadow: 0 18px 36px rgba(40, 12, 0, 0.45);
+  box-shadow: 0 1.125em 2.25em rgba(40, 12, 0, 0.45);
   overflow: hidden;
 }
 
@@ -95,7 +105,7 @@ body {
 }
 
 .music-box__label {
-  font-size: 11px;
+  font-size: 0.6875em;
   text-transform: uppercase;
   letter-spacing: 0.22em;
   color: rgba(255, 236, 205, 0.65);
@@ -103,8 +113,8 @@ body {
 
 .music-box__track {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 0.75em;
 }
 
 .music-box__title {
@@ -112,15 +122,18 @@ body {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 18px;
+  font-size: 1.125em;
   font-weight: 600;
   color: #fff2db;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
 }
 
 .music-box__title-inner {
   display: inline-flex;
   align-items: center;
-  gap: var(--scroll-gap, 48px);
+  gap: var(--scroll-gap, 3em);
   transform: translateX(0);
   will-change: transform;
 }
@@ -150,28 +163,30 @@ body {
 
 .music-box__controls {
   display: flex;
-  gap: 8px;
+  gap: 0.5em;
   align-items: center;
   justify-content: flex-end;
   flex-shrink: 0;
 }
 
 .music-box__artist {
-  font-size: 13px;
+  font-size: 0.8125em;
   color: rgba(255, 230, 188, 0.75);
+  align-self: flex-start;
+  line-height: 1.1;
 }
 
 .music-box__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  height: 32px;
-  padding: 0 12px;
+  min-width: 2.75em;
+  height: 2em;
+  padding: 0 0.75em;
   border: none;
   border-radius: 999px;
   background: rgba(255, 211, 148, 0.26);
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   color: #ffe9cc;
   cursor: pointer;
@@ -179,17 +194,17 @@ body {
 }
 
 .music-box__btn--primary {
-  min-width: 56px;
-  height: 34px;
+  min-width: 3.5em;
+  height: 2.125em;
   background: linear-gradient(90deg, #ffb347, #ff6f29);
   color: #3b1300;
-  font-size: 18px;
-  box-shadow: 0 10px 18px rgba(255, 119, 57, 0.35);
+  font-size: 1.125em;
+  box-shadow: 0 0.625em 1.125em rgba(255, 119, 57, 0.35);
 }
 
 .music-box__btn:hover {
   background: rgba(255, 211, 148, 0.38);
-  transform: translateY(-1px);
+  transform: translateY(-0.0625em);
 }
 
 .music-box__btn--primary:hover {
@@ -197,17 +212,17 @@ body {
 }
 
 .music-box__btn:focus-visible {
-  outline: 2px solid #ffe0a1;
-  outline-offset: 2px;
+  outline: 0.125em solid #ffe0a1;
+  outline-offset: 0.125em;
 }
 
 .music-box__progress {
   width: 100%;
-  height: 6px;
+  height: 0.375em;
   background: rgba(60, 26, 6, 0.55);
   border-radius: 999px;
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 0.125em;
 }
 
 .music-box__bar {

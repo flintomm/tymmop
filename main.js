@@ -41,7 +41,11 @@ window.addEventListener('DOMContentLoaded', () => {
     titleInner.style.removeProperty('--scroll-distance');
     titleInner.style.removeProperty('--scroll-duration');
 
-    const gap = 48;
+    // Scale marquee spacing with the current dash size so titles stay proportional.
+    const baseGap = 48;
+    const sceneWidth = scene ? scene.clientWidth : 1536;
+    const scale = sceneWidth / 1536;
+    const gap = Math.max(12, baseGap * scale);
     titleInner.style.setProperty('--scroll-gap', `${gap}px`);
     const needsScroll = titleText.scrollWidth > titleWrap.clientWidth;
     titleWrap.classList.toggle('music-box__title--scroll', needsScroll);
