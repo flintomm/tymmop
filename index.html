@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desert Drive Portfolio</title>
+  <link rel="stylesheet" href="styles.css?v=20241005" />
+</head>
+<body>
+  <div class="scroll-stage" id="drive-view">
+    <div class="scene">
+      <video class="bg-video" src="Reference/desert-drive.mp4" autoplay loop muted playsinline></video>
+      <img
+        class="dash-overlay"
+        src="Reference/dashboard-overlay.png"
+        alt=""
+        aria-hidden="true"
+      />
+      <div class="music-box" role="complementary" aria-label="Music player">
+        <span class="music-box__label">Now Playing</span>
+        <div class="music-box__track">
+          <div class="music-box__title" aria-live="polite">
+            <div class="music-box__title-inner">
+              <span class="music-box__title-text" data-song-title>Sand Drive</span>
+            </div>
+          </div>
+          <div class="music-box__controls">
+            <button class="music-box__btn" type="button" data-action="prev" aria-label="Previous track">&laquo;</button>
+            <button class="music-box__btn music-box__btn--primary" type="button" data-action="play" aria-label="Play track">|&gt;</button>
+            <button class="music-box__btn" type="button" data-action="next" aria-label="Next track">&raquo;</button>
+          </div>
+        </div>
+        <span class="music-box__artist">tymmo p</span>
+        <div class="music-box__progress" role="presentation">
+          <div class="music-box__bar"></div>
+        </div>
+        <audio id="music-player" preload="metadata" autoplay></audio>
+      </div>
+    </div>
+  </div>
+  <script src="main.js?v=20241005"></script>
+</body>
+</html>
