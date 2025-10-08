@@ -4,9 +4,9 @@
   color-scheme: dark;
   font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --player-left-pct: 47.6;
-  --player-top-pct: 50.4;
+  --player-top-pct: 50;
   --player-width-pct: 14.2;
-  --player-height-pct: 8.1;
+  --player-height-pct: 9.1;
   --overlay-scale: 1;
   --overlay-translate-x-pct: 0;
   --overlay-translate-y-pct: 0;
