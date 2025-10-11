@@ -9,10 +9,10 @@
   const audioEl = document.getElementById("audioElement");
 
   const DEFAULT_GEOMETRY = {
-    playerLeftPct: 47.6,
+    playerLeftPct: 47.5,
     playerTopPct: 50.4,
-    playerWidthPct: 14.2,
-    playerHeightPct: 8.1,
+    playerWidthPct: 13.3,
+    playerHeightPct: 9.1,
     overlayScale: 1,
     overlayTranslateXPct: 0,
     overlayTranslateYPct: 0,
