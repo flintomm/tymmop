@@ -18,7 +18,8 @@
   --focus-outline: rgba(118, 214, 255, 0.9);
   --control-size: clamp(1.5rem, 2.4vw, 1.9rem);
   --control-gap: clamp(0.25rem, 1vw, 0.6rem);
-  --transition-duration: 220ms;
+  --transition-duration: 420ms;
+  --background-crossfade-duration: 3000ms;
 }
 
 *,
@@ -59,13 +60,14 @@ main {
   pointer-events: none;
 }
 
-#backgroundVideo {
+.background-video {
   opacity: 0;
-  transition: opacity 600ms ease;
+  transition: opacity var(--background-crossfade-duration) ease;
   background: #000;
+  will-change: opacity;
 }
 
-#backgroundVideo.is-ready {
+.background-video.is-active {
   opacity: 1;
 }
 

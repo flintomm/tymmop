@@ -13,15 +13,22 @@
   <body>
     <main>
       <video
-        id="backgroundVideo"
-        class="background-media"
-        src="assets/road.mp4"
+        id="backgroundVideoPrimary"
+        class="background-media background-video"
         playsinline
-        autoplay
         muted
-        loop
         preload="auto"
         poster="assets/road.gif"
+        aria-hidden="true"
+      ></video>
+      <video
+        id="backgroundVideoSecondary"
+        class="background-media background-video"
+        playsinline
+        muted
+        preload="auto"
+        poster="assets/road.gif"
+        aria-hidden="true"
       ></video>
       <img
         id="backgroundFallback"

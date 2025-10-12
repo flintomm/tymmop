@@ -4,7 +4,10 @@
   const overlayImage = document.getElementById("overlayImage");
   const overlayWrapper = document.getElementById("overlayWrapper");
   const overlayStage = document.querySelector(".overlay-stage");
-  const backgroundVideo = document.getElementById("backgroundVideo");
+  const backgroundVideos = [
+    document.getElementById("backgroundVideoPrimary"),
+    document.getElementById("backgroundVideoSecondary"),
+  ].filter(Boolean);
   const fallbackImage = document.getElementById("backgroundFallback");
   const audioEl = document.getElementById("audioElement");
 
@@ -17,6 +20,23 @@
     overlayTranslateXPct: 0,
     overlayTranslateYPct: 0,
   };
+
+  const videoSources = [
+    "assets/road.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road1.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+  ];
 
   const playlist = [
     { src: "https://media.tymmop.com/portals/01-ntro.mp3", title: "Sand Drive", artist: "tymmo p" },
@@ -56,8 +76,11 @@
   let currentTrackIndex = 0;
   let isPlaying = false;
 
-  const DEFAULT_VOLUME = 0.8;
+  const DEFAULT_VOLUME = 1.0;
   const SEEK_SCRUB_STEP = 5;
+  const BACKGROUND_PLAYBACK_RATE = 0.7;
+  const CROSSFADE_DURATION_MS = 3000;
+  const CROSSFADE_LEAD_TIME = 2.5;
 
   audioEl.preload = "metadata";
   audioEl.crossOrigin = "anonymous";
@@ -314,28 +337,224 @@
   }
 
   function setupBackgroundVideo() {
-    fallbackImage.classList.add("is-visible");
+    if (!backgroundVideos.length) {
+      console.warn("No background video elements found.");
+      fallbackImage?.classList.add("is-visible");
+      return;
+    }
 
-    backgroundVideo.addEventListener("canplay", () => {
-      backgroundVideo.classList.add("is-ready");
-      fallbackImage.classList.remove("is-visible");
-      backgroundVideo.play().catch(() => {});
+    const sources = videoSources.filter((src) => typeof src === "string" && src.trim().length);
+    if (!sources.length) {
+      console.warn("No background video sources configured.");
+      fallbackImage?.classList.add("is-visible");
+      return;
+    }
+
+    let hasUserInteracted = false;
+    let activeSlot = 0;
+    let activeSourceIndex = 0;
+    let isCrossfadeRunning = false;
+
+    function ensurePlayback(video) {
+      if (!video) return;
+      video.playbackRate = BACKGROUND_PLAYBACK_RATE;
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch((error) => {
+          console.warn("Background video playback failed", error);
+        });
+      }
+    }
+
+    const normalizeIndex = (index) => {
+      const count = sources.length;
+      return ((index % count) + count) % count;
+    };
+
+    if (backgroundVideos.length < 2) {
+      console.warn("Expected two background video elements for crossfade; using single video fallback.");
+      const singleVideo = backgroundVideos[0];
+
+      if (!singleVideo) {
+        fallbackImage?.classList.add("is-visible");
+        return;
+      }
+
+      singleVideo.pause();
+      singleVideo.currentTime = 0;
+      singleVideo.classList.remove("is-active");
+
+      fallbackImage?.classList.add("is-visible");
+
+      singleVideo.addEventListener(
+        "canplay",
+        () => {
+          fallbackImage?.classList.remove("is-visible");
+          if (hasUserInteracted) {
+            ensurePlayback(singleVideo);
+          }
+        },
+        { once: true }
+      );
+
+      singleVideo.addEventListener("error", (event) => {
+        console.warn("Background video error", event);
+        fallbackImage?.classList.add("is-visible");
+      });
+
+      singleVideo.src = sources[0];
+      singleVideo.load();
+
+      const startPlaybackSingle = () => {
+        hasUserInteracted = true;
+        ensurePlayback(singleVideo);
+      };
+
+      document.addEventListener("pointerdown", startPlaybackSingle, { once: true });
+      document.addEventListener("keydown", startPlaybackSingle, { once: true });
+      audioEl.addEventListener("play", startPlaybackSingle, { once: true });
+
+      return;
+    }
+
+    backgroundVideos.forEach((video) => {
+      video.pause();
+      video.currentTime = 0;
+      video.classList.remove("is-active");
+      video.removeAttribute("loop");
+      video.removeAttribute("autoplay");
     });
 
-    backgroundVideo.addEventListener("error", () => {
-      backgroundVideo.classList.remove("is-ready");
-      fallbackImage.classList.add("is-visible");
-    });
+    fallbackImage?.classList.add("is-visible");
 
-    const resume = () => {
-      backgroundVideo.play().finally(() => {
-        document.removeEventListener("pointerdown", resume);
-        document.removeEventListener("keydown", resume);
+    const loadSlot = (slot, sourceIndex) => {
+      const video = backgroundVideos[slot];
+      if (!video) {
+        return Promise.reject(new Error(`Missing background video slot ${slot}`));
+      }
+
+      const source = sources[normalizeIndex(sourceIndex)];
+
+      return new Promise((resolve, reject) => {
+        const handleCanPlay = () => {
+          cleanup();
+          video.dataset.sourceIndex = String(normalizeIndex(sourceIndex));
+          resolve(video);
+        };
+        const handleError = (event) => {
+          cleanup();
+          reject(event);
+        };
+        const cleanup = () => {
+          video.removeEventListener("canplay", handleCanPlay);
+          video.removeEventListener("error", handleError);
+        };
+
+        video.pause();
+        video.currentTime = 0;
+        video.addEventListener("canplay", handleCanPlay, { once: true });
+        video.addEventListener("error", handleError, { once: true });
+        video.src = source;
+        video.load();
       });
     };
 
-    document.addEventListener("pointerdown", resume, { once: true });
-    document.addEventListener("keydown", resume, { once: true });
+    const startCrossfade = (forceImmediate = false) => {
+      if (isCrossfadeRunning) return;
+
+      const outgoingSlot = activeSlot;
+      const incomingSlot = 1 - activeSlot;
+      const nextSourceIndex = normalizeIndex(activeSourceIndex + 1);
+
+      isCrossfadeRunning = true;
+
+      loadSlot(incomingSlot, nextSourceIndex)
+        .then((incomingVideo) => {
+          if (hasUserInteracted) {
+            ensurePlayback(incomingVideo);
+          }
+
+          fallbackImage?.classList.remove("is-visible");
+
+          requestAnimationFrame(() => {
+            incomingVideo.classList.add("is-active");
+            backgroundVideos[outgoingSlot]?.classList.remove("is-active");
+          });
+
+          const outgoingVideo = backgroundVideos[outgoingSlot];
+          if (outgoingVideo) {
+            const delay = forceImmediate ? 0 : CROSSFADE_DURATION_MS;
+            window.setTimeout(() => {
+              outgoingVideo.pause();
+              outgoingVideo.currentTime = 0;
+            }, delay);
+          }
+
+          activeSlot = incomingSlot;
+          activeSourceIndex = nextSourceIndex;
+        })
+        .catch((error) => {
+          console.warn("Failed to prepare background video", error);
+        })
+        .finally(() => {
+          isCrossfadeRunning = false;
+        });
+    };
+
+    backgroundVideos.forEach((video, slot) => {
+      video.addEventListener("timeupdate", () => {
+        if (slot !== activeSlot) return;
+        if (isCrossfadeRunning) return;
+        if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+        if (!Number.isFinite(video.currentTime)) return;
+
+        const remaining = video.duration - video.currentTime;
+        if (remaining <= CROSSFADE_LEAD_TIME) {
+          startCrossfade();
+        }
+      });
+
+      video.addEventListener("ended", () => {
+        if (slot === activeSlot) {
+          startCrossfade(true);
+        }
+      });
+
+      video.addEventListener("error", (event) => {
+        if (slot === activeSlot) {
+          console.warn("Background video error", event);
+          startCrossfade(true);
+        }
+      });
+    });
+
+    loadSlot(activeSlot, activeSourceIndex)
+      .then((video) => {
+        video.classList.add("is-active");
+        fallbackImage?.classList.remove("is-visible");
+        if (hasUserInteracted) {
+          ensurePlayback(video);
+        }
+      })
+      .catch((error) => {
+        console.warn("Failed to load initial background video", error);
+      });
+
+    const startPlayback = () => {
+      hasUserInteracted = true;
+      ensurePlayback(backgroundVideos[activeSlot]);
+    };
+
+    document.addEventListener("pointerdown", startPlayback, { once: true });
+    document.addEventListener("keydown", startPlayback, { once: true });
+    audioEl.addEventListener(
+      "play",
+      () => {
+        hasUserInteracted = true;
+        ensurePlayback(backgroundVideos[activeSlot]);
+      },
+      { once: true }
+    );
   }
 
   function wirePlayerEvents() {
