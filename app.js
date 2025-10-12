@@ -78,8 +78,8 @@
 
   const DEFAULT_VOLUME = 1.0;
   const SEEK_SCRUB_STEP = 5;
-  const BACKGROUND_PLAYBACK_RATE = 0.7;
-  const CROSSFADE_DURATION_MS = 3000;
+  const BACKGROUND_PLAYBACK_RATE = 0.68;
+  const CROSSFADE_DURATION_MS = 3500;
   const CROSSFADE_LEAD_TIME = 2.5;
 
   audioEl.preload = "metadata";
