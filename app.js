@@ -196,7 +196,7 @@
     const track = playlist[currentTrackIndex];
     elements.title.textContent = track.title;
     elements.title.setAttribute("title", track.title);
-    elements.artist.textContent = track.artist ?? "tymmo p";
+    elements.artist.textContent = track.artist != null ? track.artist : "tymmo p";
     elements.status.textContent = isPlaying ? "Now Playing" : "Paused";
     elements.currentTime.textContent = "0:00";
     elements.duration.textContent = "0:00";
@@ -293,7 +293,8 @@
       })
       .then((config) => {
         configData = config;
-        applyGeometry(config.desktop ?? DEFAULT_GEOMETRY);
+        const desktopConfig = config && config.desktop ? config.desktop : DEFAULT_GEOMETRY;
+        applyGeometry(desktopConfig);
       })
       .catch((error) => {
         console.warn("Failed to load config/player.json; using defaults.", error);
@@ -321,7 +322,7 @@
         return { ...geometryState };
       },
       reset() {
-        if (!configData?.desktop) {
+        if (!configData || !configData.desktop) {
           console.warn("No desktop geometry in config to reset to.");
           applyGeometry(DEFAULT_GEOMETRY);
           return { ...geometryState };
@@ -339,14 +340,18 @@
   function setupBackgroundVideo() {
     if (!backgroundVideos.length) {
       console.warn("No background video elements found.");
-      fallbackImage?.classList.add("is-visible");
+      if (fallbackImage) {
+        fallbackImage.classList.add("is-visible");
+      }
       return;
     }
 
     const sources = videoSources.filter((src) => typeof src === "string" && src.trim().length);
     if (!sources.length) {
       console.warn("No background video sources configured.");
-      fallbackImage?.classList.add("is-visible");
+      if (fallbackImage) {
+        fallbackImage.classList.add("is-visible");
+      }
       return;
     }
 
@@ -376,7 +381,9 @@
       const singleVideo = backgroundVideos[0];
 
       if (!singleVideo) {
-        fallbackImage?.classList.add("is-visible");
+        if (fallbackImage) {
+          fallbackImage.classList.add("is-visible");
+        }
         return;
       }
 
@@ -384,12 +391,16 @@
       singleVideo.currentTime = 0;
       singleVideo.classList.remove("is-active");
 
-      fallbackImage?.classList.add("is-visible");
+      if (fallbackImage) {
+        fallbackImage.classList.add("is-visible");
+      }
 
       singleVideo.addEventListener(
         "canplay",
         () => {
-          fallbackImage?.classList.remove("is-visible");
+          if (fallbackImage) {
+            fallbackImage.classList.remove("is-visible");
+          }
           if (hasUserInteracted) {
             ensurePlayback(singleVideo);
           }
@@ -399,7 +410,9 @@
 
       singleVideo.addEventListener("error", (event) => {
         console.warn("Background video error", event);
-        fallbackImage?.classList.add("is-visible");
+        if (fallbackImage) {
+          fallbackImage.classList.add("is-visible");
+        }
       });
 
       singleVideo.src = sources[0];
@@ -425,7 +438,9 @@
       video.removeAttribute("autoplay");
     });
 
-    fallbackImage?.classList.add("is-visible");
+    if (fallbackImage) {
+      fallbackImage.classList.add("is-visible");
+    }
 
     const loadSlot = (slot, sourceIndex) => {
       const video = backgroundVideos[slot];
@@ -474,11 +489,16 @@
             ensurePlayback(incomingVideo);
           }
 
-          fallbackImage?.classList.remove("is-visible");
+          if (fallbackImage) {
+            fallbackImage.classList.remove("is-visible");
+          }
 
           requestAnimationFrame(() => {
             incomingVideo.classList.add("is-active");
-            backgroundVideos[outgoingSlot]?.classList.remove("is-active");
+            const outgoingActiveVideo = backgroundVideos[outgoingSlot];
+            if (outgoingActiveVideo) {
+              outgoingActiveVideo.classList.remove("is-active");
+            }
           });
 
           const outgoingVideo = backgroundVideos[outgoingSlot];
@@ -531,7 +551,9 @@
     loadSlot(activeSlot, activeSourceIndex)
       .then((video) => {
         video.classList.add("is-active");
-        fallbackImage?.classList.remove("is-visible");
+        if (fallbackImage) {
+          fallbackImage.classList.remove("is-visible");
+        }
         if (hasUserInteracted) {
           ensurePlayback(video);
         }
