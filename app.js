@@ -44,12 +44,7 @@
       src: "https://media.tymmop.com/portals/02-trouble.mp3",
       title: "International Desert Drive",
       artist: "tymmo p",
-    },
-    {
-      src: "https://media.tymmop.com/portals/03-double.mp3",
-      title: "Floating Airy Helicopty Ride",
-      artist: "tymmo p",
-    },
+},
     { src: "https://media.tymmop.com/portals/04-infinity.mp3", title: "99 to Infinity", artist: "tymmo p" },
     { src: "https://media.tymmop.com/portals/05-rooftop.mp3", title: "Rooftop Fireworks", artist: "tymmo p" },
     { src: "https://media.tymmop.com/portals/06-justr.mp3", title: "Things Just R", artist: "tymmo p" },
@@ -581,8 +576,8 @@
 
   function wirePlayerEvents() {
     elements.playPauseButton.addEventListener("click", togglePlay);
-    elements.prevButton.addEventListener("click", () => stepTrack(-1));
-    elements.nextButton.addEventListener("click", () => stepTrack(1));
+    elements.prevButton.addEventListener("click", () => stepTrack(1));
+    elements.nextButton.addEventListener("click", () => stepTrack(-1));
 
     audioEl.addEventListener("loadedmetadata", () => {
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
