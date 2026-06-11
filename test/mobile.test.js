@@ -4,34 +4,24 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createPage, read } = require("./helpers/page.js");
 
-test("desktop: player lives inside the dashboard overlay", async () => {
+test("the player lives in the dashboard overlay on desktop", async () => {
   const page = await createPage();
-  const shell = page.el("playerShell");
-  assert.equal(shell.parentElement.id, "overlayWrapper");
-  assert.ok(!shell.classList.contains("player-shell--docked"));
+  assert.equal(page.el("playerShell").parentElement.id, "overlayWrapper");
 });
 
-test("mobile: player docks to body as a bottom bar", async () => {
+test("the player stays on the radio bezel on small screens too", async () => {
+  // regression for the docked-bar experiment: the player must never leave
+  // the overlay, because the whole design is "the player is the car radio"
   const page = await createPage({ mobile: true });
   const shell = page.el("playerShell");
-  assert.equal(shell.parentElement, page.document.body);
-  assert.ok(shell.classList.contains("player-shell--docked"));
-});
-
-test("rotating/resizing across the breakpoint moves the player both ways", async () => {
-  const page = await createPage();
-  const shell = page.el("playerShell");
+  assert.equal(shell.parentElement.id, "overlayWrapper");
 
   page.setMobile(true);
-  assert.equal(shell.parentElement, page.document.body);
-  assert.ok(shell.classList.contains("player-shell--docked"));
-
   page.setMobile(false);
   assert.equal(shell.parentElement.id, "overlayWrapper");
-  assert.ok(!shell.classList.contains("player-shell--docked"));
 });
 
-test("controls keep working while docked", async () => {
+test("controls work at mobile sizes", async () => {
   const page = await createPage({ mobile: true });
   page.click("nextButton");
   assert.equal(page.el("trackTitle").textContent, "International Desert Drive");
@@ -40,28 +30,12 @@ test("controls keep working while docked", async () => {
   assert.equal(page.el("trackStatus").textContent, "Now Playing");
 });
 
-test("docked stylesheet contract: fixed bar with finger-sized controls", () => {
-  const css = read("styles.css");
-  const docked = css.slice(css.indexOf(".player-shell--docked"));
-  assert.ok(docked.length > 0, "docked styles missing");
-  assert.match(docked, /position:\s*fixed/);
-  assert.match(docked, /safe-area-inset-bottom/);
-  // 2.75rem = 44px touch targets at default font size
-  assert.match(docked, /\.player-shell--docked button\s*{[^}]*width:\s*2\.75rem/);
-  assert.match(docked, /#playPauseButton\s*{[^}]*width:\s*3\.25rem/);
+test("no docked-mode styles or reparenting remain", () => {
+  assert.ok(!read("styles.css").includes("player-shell--docked"));
+  assert.ok(!read("app.js").includes("player-shell--docked"));
 });
 
-test("share button is hidden in the bezel, visible when docked", () => {
+test("buttons extend their tap targets beyond the visible circle", () => {
   const css = read("styles.css");
-  assert.match(css, /\.share-button\s*{\s*display:\s*none/);
-  assert.match(
-    css,
-    /\.player-shell--docked \.share-button\s*{[^}]*display:\s*grid/
-  );
-});
-
-test("app.js uses a media query to drive dock mode", () => {
-  const js = read("app.js");
-  assert.match(js, /matchMedia/);
-  assert.match(js, /max-width:\s*700px/);
+  assert.match(css, /button::after\s*{[^}]*inset:\s*-\d+px/);
 });

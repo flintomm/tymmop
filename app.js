@@ -71,7 +71,6 @@
     nextButton: document.getElementById("nextButton"),
     progressBar: document.getElementById("progressBar"),
     progressFill: document.getElementById("progressFill"),
-    shareButton: document.getElementById("shareButton"),
   };
 
   let geometryState = { ...DEFAULT_GEOMETRY };
@@ -86,7 +85,6 @@
   const BACKGROUND_PLAYBACK_RATE = 0.68;
   const CROSSFADE_DURATION_MS = 3500;
   const CROSSFADE_LEAD_TIME = 2.5;
-  const MOBILE_QUERY = "(max-width: 700px)";
   const BASE_TITLE = document.title;
   const STORAGE_KEY = "tymmop:player-state";
   // count a share-link arrival once per browsing session, so the address
@@ -133,43 +131,13 @@
     }
   }
 
-  function buildShareUrl(track) {
-    return `${window.location.origin}${window.location.pathname}?track=${slugifyTitle(track.title)}`;
-  }
-
   // keep the address bar pointing at the current song so copying the URL
-  // always shares the right track
+  // (or the browser's own share button) always shares the right track
   function syncUrlToTrack(track) {
     try {
       window.history.replaceState(null, "", `?track=${slugifyTitle(track.title)}`);
     } catch (error) {
       /* sandboxed contexts can refuse history access — non-essential */
-    }
-  }
-
-  function shareCurrentTrack() {
-    const track = playlist[currentTrackIndex];
-    if (!track) return;
-    const url = buildShareUrl(track);
-    trackEvent("track-share", { title: track.title });
-    if (navigator.share) {
-      navigator
-        .share({ title: `${track.title} — tymmo p`, url })
-        .catch(() => {
-          /* user dismissed the share sheet */
-        });
-      return;
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(url)
-        .then(() => {
-          elements.status.textContent = "Link copied";
-          window.setTimeout(() => {
-            elements.status.textContent = isPlaying ? "Now Playing" : "Paused";
-          }, 1600);
-        })
-        .catch(() => {});
     }
   }
 
@@ -589,42 +557,6 @@
     };
   }
 
-  function setupResponsiveDock() {
-    const playerShell = document.getElementById("playerShell");
-    if (!playerShell || !overlayWrapper) return;
-    if (typeof window.matchMedia !== "function") return;
-
-    // position: fixed cannot escape the overlay wrapper's transform, so
-    // docking on small screens requires physically moving the node to body
-    const homeParent = playerShell.parentElement;
-    const query = window.matchMedia(MOBILE_QUERY);
-
-    const applyDockMode = (isMobile) => {
-      // moving a node drops focus to <body>; restore it for keyboard users
-      const focused = playerShell.contains(document.activeElement)
-        ? document.activeElement
-        : null;
-      if (isMobile) {
-        playerShell.classList.add("player-shell--docked");
-        document.body.appendChild(playerShell);
-      } else {
-        playerShell.classList.remove("player-shell--docked");
-        homeParent.appendChild(playerShell);
-      }
-      if (focused && typeof focused.focus === "function") {
-        focused.focus();
-      }
-      updateTrackTitleMarquee();
-    };
-
-    if (typeof query.addEventListener === "function") {
-      query.addEventListener("change", (event) => applyDockMode(event.matches));
-    } else if (typeof query.addListener === "function") {
-      query.addListener((event) => applyDockMode(event.matches));
-    }
-    applyDockMode(query.matches);
-  }
-
   function setupBackgroundVideo() {
     if (!backgroundVideos.length) {
       console.warn("No background video elements found.");
@@ -872,9 +804,6 @@
     elements.playPauseButton.addEventListener("click", togglePlay);
     elements.prevButton.addEventListener("click", () => stepTrack(-1));
     elements.nextButton.addEventListener("click", () => stepTrack(1));
-    if (elements.shareButton) {
-      elements.shareButton.addEventListener("click", shareCurrentTrack);
-    }
 
     const refreshClock = () => {
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
@@ -1027,7 +956,6 @@
   // boot fully on the built-in defaults so the player and background work
   // even when the config fetch is slow or never settles; the config is
   // applied as an upgrade when (if) it arrives
-  setupResponsiveDock();
   wirePlayerEvents();
   setupBackgroundVideo();
   initializePlayer();
