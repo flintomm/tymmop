@@ -1,0 +1,11 @@
+{
+  "name": "tymmop",
+  "private": true,
+  "description": "between the spaces - tymmo p",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
