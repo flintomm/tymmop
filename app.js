@@ -217,9 +217,20 @@
       artist: track.artist != null ? track.artist : "tymmo p",
       album: "between the spaces",
       artwork: [
+        // square first: iOS only reliably shows square artwork
+        { src: "assets/artwork-512.jpg", sizes: "512x512", type: "image/jpeg" },
         { src: "assets/og-card.jpg", sizes: "1200x630", type: "image/jpeg" },
       ],
     });
+  }
+
+  function setMediaSessionPlaybackState(state) {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.playbackState = state;
+    } catch (error) {
+      /* older engines expose mediaSession without playbackState */
+    }
   }
 
   function updatePlayStateVisual(isNowPlaying) {
@@ -849,6 +860,10 @@
     audioEl.addEventListener("play", () => {
       isPlaying = true;
       updatePlayStateVisual(true);
+      // iOS Safari drops metadata set before playback begins; re-assert it
+      // now that this page owns the Now Playing UI
+      updateMediaSessionMetadata(playlist[currentTrackIndex]);
+      setMediaSessionPlaybackState("playing");
       if (!hasTrackedPlay) {
         trackEvent("track-play", { title: playlist[currentTrackIndex].title });
         hasTrackedPlay = true;
@@ -861,6 +876,7 @@
       if (!audioEl.ended) {
         isPlaying = false;
         updatePlayStateVisual(false);
+        setMediaSessionPlaybackState("paused");
         saveResumeState();
       }
     });

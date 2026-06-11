@@ -102,6 +102,11 @@ test("media session gets metadata and working transport handlers", async () => {
   const page = await createPage();
   assert.equal(page.mediaSession.metadata.title, "Sand Drive");
   assert.equal(page.mediaSession.metadata.artist, "tymmo p");
+  assert.equal(
+    page.mediaSession.metadata.artwork[0].sizes,
+    "512x512",
+    "square artwork must come first for iOS lock screens"
+  );
 
   for (const type of ["play", "pause", "previoustrack", "nexttrack"]) {
     assert.equal(
@@ -117,6 +122,19 @@ test("media session gets metadata and working transport handlers", async () => {
     "International Desert Drive",
     "lock screen metadata must follow track changes"
   );
+});
+
+test("media session metadata is re-asserted when playback starts (iOS)", async () => {
+  const page = await createPage();
+  // simulate iOS dropping metadata that was set before playback began
+  page.mediaSession.metadata = null;
+  page.fire(page.audio, "play");
+  assert.ok(page.mediaSession.metadata, "play must re-set metadata");
+  assert.equal(page.mediaSession.metadata.title, "Sand Drive");
+  assert.equal(page.mediaSession.playbackState, "playing");
+
+  page.fire(page.audio, "pause");
+  assert.equal(page.mediaSession.playbackState, "paused");
 });
 
 test("track ends: playlist advances and keeps playing", async () => {
