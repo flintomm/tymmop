@@ -21,34 +21,29 @@
     overlayTranslateYPct: 0,
   };
 
-  const videoSources = [
+  // fallbacks if config/player.json is missing or invalid; the config file
+  // is the source of truth for the playlist, video sequence, and links
+  const DEFAULT_VIDEO_SEQUENCE = [
     "assets/road.mp4",
-    "assets/road3.mp4",
-    "assets/road3.mp4",
-    "assets/road3.mp4",
-    "assets/road3.mp4",
-    "assets/road3.mp4",
     "assets/road3.mp4",
     "assets/road1.mp4",
     "assets/road2.mp4",
-    "assets/road2.mp4",
-    "assets/road2.mp4",
-    "assets/road2.mp4",
-    "assets/road2.mp4",
-    "assets/road2.mp4",
   ];
 
-  const playlist = [
+  const DEFAULT_PLAYLIST = [
     { src: "https://media.tymmop.com/portals/01-ntro.mp3", title: "Sand Drive", artist: "tymmo p" },
     {
       src: "https://media.tymmop.com/portals/02-trouble.mp3",
       title: "International Desert Drive",
       artist: "tymmo p",
-},
+    },
     { src: "https://media.tymmop.com/portals/04-infinity.mp3", title: "99 to Infinity", artist: "tymmo p" },
     { src: "https://media.tymmop.com/portals/05-rooftop.mp3", title: "Rooftop Fireworks", artist: "tymmo p" },
     { src: "https://media.tymmop.com/portals/06-justr.mp3", title: "Things Just R", artist: "tymmo p" },
   ];
+
+  let videoSources = DEFAULT_VIDEO_SEQUENCE.slice();
+  let playlist = DEFAULT_PLAYLIST.slice();
 
   const elements = {
     title: document.getElementById("trackTitle"),
@@ -368,12 +363,64 @@
         configData = config;
         const desktopConfig = config && config.desktop ? config.desktop : DEFAULT_GEOMETRY;
         applyGeometry(desktopConfig);
+        return config;
       })
       .catch((error) => {
         console.warn("Failed to load config/player.json; using defaults.", error);
         configData = { desktop: { ...DEFAULT_GEOMETRY } };
         applyGeometry(DEFAULT_GEOMETRY);
+        return null;
       });
+  }
+
+  function applyConfigContent(config) {
+    if (config && Array.isArray(config.playlist)) {
+      const tracks = config.playlist.filter(
+        (track) =>
+          track &&
+          typeof track.src === "string" &&
+          typeof track.title === "string"
+      );
+      if (tracks.length) playlist = tracks;
+    }
+    if (config && Array.isArray(config.videoSequence)) {
+      const sources = config.videoSequence.filter(
+        (src) => typeof src === "string" && src.trim().length
+      );
+      if (sources.length) videoSources = sources;
+    }
+    renderSiteLinks(config && Array.isArray(config.links) ? config.links : []);
+  }
+
+  function renderSiteLinks(links) {
+    const nav = document.getElementById("siteLinks");
+    if (!nav) return;
+    const valid = links.filter(
+      (link) =>
+        link &&
+        typeof link.label === "string" &&
+        typeof link.url === "string" &&
+        /^https?:\/\//.test(link.url)
+    );
+    nav.innerHTML = "";
+    if (!valid.length) {
+      nav.hidden = true;
+      return;
+    }
+    valid.forEach(({ label, url }) => {
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.textContent = label;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.addEventListener("click", () => {
+        if (window.umami && typeof window.umami.track === "function") {
+          window.umami.track("link-click", { label });
+        }
+      });
+      nav.appendChild(anchor);
+    });
+    nav.hidden = false;
   }
 
   function setupPlayerGeometryTools() {
@@ -804,10 +851,8 @@
     });
   }
 
-  setupBackgroundVideo();
   setupResponsiveDock();
   wirePlayerEvents();
-  initializePlayer();
 
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready
@@ -825,8 +870,11 @@
     );
   }
 
-  loadConfig().then(() => {
+  loadConfig().then((config) => {
+    applyConfigContent(config);
     setupPlayerGeometryTools();
+    setupBackgroundVideo();
+    initializePlayer();
     updateOverlayTransform();
   });
 })();

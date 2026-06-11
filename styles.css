@@ -431,6 +431,34 @@ button:focus-visible {
   z-index: 1;
 }
 
+.site-links {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 16px;
+  display: flex;
+  gap: 0.9rem;
+  z-index: 2;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+
+.site-links[hidden] {
+  display: none;
+}
+
+.site-links a {
+  color: rgba(190, 234, 255, 0.78);
+  text-decoration: none;
+  transition: color 200ms ease, text-shadow 200ms ease;
+}
+
+.site-links a:hover,
+.site-links a:focus-visible {
+  color: #e9f6ff;
+  text-shadow: 0 0 10px rgba(118, 214, 255, 0.8);
+}
+
 .audio-source[hidden] {
   display: none;
 }

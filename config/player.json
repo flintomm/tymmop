@@ -7,5 +7,49 @@
     "overlayScale": 1.0,
     "overlayTranslateXPct": 0,
     "overlayTranslateYPct": 0
-  }
+  },
+  "playlist": [
+    {
+      "src": "https://media.tymmop.com/portals/01-ntro.mp3",
+      "title": "Sand Drive",
+      "artist": "tymmo p"
+    },
+    {
+      "src": "https://media.tymmop.com/portals/02-trouble.mp3",
+      "title": "International Desert Drive",
+      "artist": "tymmo p"
+    },
+    {
+      "src": "https://media.tymmop.com/portals/04-infinity.mp3",
+      "title": "99 to Infinity",
+      "artist": "tymmo p"
+    },
+    {
+      "src": "https://media.tymmop.com/portals/05-rooftop.mp3",
+      "title": "Rooftop Fireworks",
+      "artist": "tymmo p"
+    },
+    {
+      "src": "https://media.tymmop.com/portals/06-justr.mp3",
+      "title": "Things Just R",
+      "artist": "tymmo p"
+    }
+  ],
+  "videoSequence": [
+    "assets/road.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road1.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4"
+  ],
+  "links": []
 }
