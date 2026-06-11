@@ -15,7 +15,7 @@ function read(rel) {
  * app touches (media element, media session, umami, fetch for config)
  * replaced by inspectable test doubles.
  */
-async function createPage({ config } = {}) {
+async function createPage({ config, mobile = false } = {}) {
   const html = read("index.html");
   const appJs = read("app.js");
   const configJson =
@@ -69,6 +69,23 @@ async function createPage({ config } = {}) {
     },
   };
 
+  const mediaQueries = [];
+  window.matchMedia = (media) => {
+    const listeners = new Set();
+    const mql = {
+      media,
+      matches: mobile,
+      addEventListener: (_type, fn) => listeners.add(fn),
+      removeEventListener: (_type, fn) => listeners.delete(fn),
+      dispatch(matches) {
+        mql.matches = matches;
+        listeners.forEach((fn) => fn({ matches, media }));
+      },
+    };
+    mediaQueries.push(mql);
+    return mql;
+  };
+
   window.fetch = (url) => {
     if (String(url).includes("config/player.json")) {
       return Promise.resolve({
@@ -95,6 +112,11 @@ async function createPage({ config } = {}) {
     calls,
     mediaSession,
     el: (id) => document.getElementById(id),
+    setMobile(matches) {
+      mediaQueries
+        .filter((mql) => mql.media.includes("max-width"))
+        .forEach((mql) => mql.dispatch(matches));
+    },
     click(id) {
       document
         .getElementById(id)

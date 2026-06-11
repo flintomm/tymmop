@@ -79,6 +79,7 @@
   const BACKGROUND_PLAYBACK_RATE = 0.68;
   const CROSSFADE_DURATION_MS = 3500;
   const CROSSFADE_LEAD_TIME = 2.5;
+  const MOBILE_QUERY = "(max-width: 700px)";
 
   audioEl.preload = "metadata";
 
@@ -356,6 +357,36 @@
         return { ...geometryState };
       },
     };
+  }
+
+  function setupResponsiveDock() {
+    const playerShell = document.getElementById("playerShell");
+    if (!playerShell || !overlayWrapper) return;
+    if (typeof window.matchMedia !== "function") return;
+
+    // position: fixed cannot escape the overlay wrapper's transform, so
+    // docking on small screens requires physically moving the node to body
+    const homeParent = playerShell.parentElement;
+    const homeAnchor = playerShell.nextElementSibling;
+    const query = window.matchMedia(MOBILE_QUERY);
+
+    const applyDockMode = (isMobile) => {
+      if (isMobile) {
+        playerShell.classList.add("player-shell--docked");
+        document.body.appendChild(playerShell);
+      } else {
+        playerShell.classList.remove("player-shell--docked");
+        homeParent.insertBefore(playerShell, homeAnchor);
+      }
+      updateTrackTitleMarquee();
+    };
+
+    if (typeof query.addEventListener === "function") {
+      query.addEventListener("change", (event) => applyDockMode(event.matches));
+    } else if (typeof query.addListener === "function") {
+      query.addListener((event) => applyDockMode(event.matches));
+    }
+    applyDockMode(query.matches);
   }
 
   function setupBackgroundVideo() {
@@ -706,6 +737,7 @@
   }
 
   setupBackgroundVideo();
+  setupResponsiveDock();
   wirePlayerEvents();
   initializePlayer();
 

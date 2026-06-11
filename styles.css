@@ -341,6 +341,69 @@ button:focus-visible {
   background: linear-gradient(135deg, rgba(138, 210, 255, 0.95), #66c6ff);
 }
 
+/* Docked mode: on small screens the player leaves the dashboard bezel
+   and becomes a bottom bar with finger-sized controls. The node is
+   reparented to <body> by app.js, so fixed positioning works here. */
+.player-shell.player-shell--docked {
+  position: fixed;
+  left: 50%;
+  top: auto;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  transform: translateX(-50%);
+  width: min(92vw, 430px);
+  height: auto;
+  z-index: 3;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.8rem;
+}
+
+.player-shell--docked .track-info {
+  font-size: 0.72rem;
+}
+
+.player-shell--docked .time-display {
+  font-size: 0.66rem;
+}
+
+.player-shell--docked .track-title {
+  min-height: 1.3rem;
+  padding-block: 0.2rem;
+  padding-inline: 0.5rem;
+  margin-top: 0;
+}
+
+.player-shell--docked .track-title__text {
+  font-size: 0.85rem;
+}
+
+.player-shell--docked .progress {
+  height: 5px;
+}
+
+.player-shell--docked .controls {
+  margin-top: 0;
+}
+
+.player-shell--docked .transport {
+  gap: 0.9rem;
+}
+
+.player-shell--docked button {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.player-shell--docked button svg {
+  width: 62%;
+  height: 62%;
+}
+
+.player-shell--docked #playPauseButton {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
 .player-scrim {
   position: fixed;
   inset: 0;
