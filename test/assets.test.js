@@ -14,7 +14,7 @@ const assertFileExists = (rel, source) =>
 test("every relative src/href/poster/srcset in index.html points at a real file", () => {
   const html = read("index.html");
   const refs = [...html.matchAll(/(?:srcset|src|href|poster)="([^"]+)"/g)]
-    .map((m) => m[1])
+    .map((m) => m[1].split("?")[0]) // drop cache-buster query strings
     .filter((url) => !/^(https?:)?\/\//.test(url) && !url.startsWith("#"));
   assert.ok(refs.length > 5, "expected to find local references");
   for (const ref of refs) assertFileExists(ref, "index.html");

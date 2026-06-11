@@ -23,10 +23,23 @@ test("social cards are complete", () => {
   assert.equal(q('meta[name="twitter:card"]')?.content, "summary_large_image");
 });
 
-test("icons are wired: svg favicon, png fallback, apple touch", () => {
-  assert.ok(q('link[rel="icon"][type="image/svg+xml"]'));
-  assert.ok(q('link[rel="icon"][type="image/png"]'));
-  assert.ok(q('link[rel="apple-touch-icon"]'));
+test("icons are wired to the gunmetal set: ico, svg, png, apple touch", () => {
+  assert.ok(q('link[rel="icon"][href^="assets/favicon-gunmetal/favicon.ico"]'));
+  assert.ok(
+    q(
+      'link[rel="icon"][type="image/svg+xml"][href^="assets/favicon-gunmetal/favicon.svg"]'
+    )
+  );
+  assert.ok(
+    q(
+      'link[rel="icon"][type="image/png"][href^="assets/favicon-gunmetal/favicon-32.png"]'
+    )
+  );
+  assert.ok(
+    q(
+      'link[rel="apple-touch-icon"][href^="assets/favicon-gunmetal/apple-touch-icon-180.png"]'
+    )
+  );
 });
 
 test("umami analytics is present with a real website id", () => {
