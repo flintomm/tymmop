@@ -65,7 +65,6 @@ root is served as-is). Analytics is Umami Cloud; page views plus
 
 Current state of the takeover:
 
-- `tymmop.com` still points at the previous owner's deployment; switch it
-  to this Pages project in the Cloudflare dashboard when ready.
-- Audio files still stream from the original `media.tymmop.com` bucket —
-  copying them to storage we control is an open task.
+- `tymmop.com` still points at the previous deployment; switch it to this
+  Pages project in the Cloudflare dashboard when ready.
+- Audio streams from the `media.tymmop.com` R2 bucket.
