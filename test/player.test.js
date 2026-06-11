@@ -85,16 +85,17 @@ test("clock survives missing duration", async () => {
 
 test("umami records one play per track, not per resume", async () => {
   const page = await createPage();
+  const plays = () =>
+    page.calls.umami.filter((entry) => entry.event === "track-play");
   page.fire(page.audio, "play");
   page.fire(page.audio, "play"); // resume after pause: no second event
-  assert.equal(page.calls.umami.length, 1);
-  assert.equal(page.calls.umami[0].event, "track-play");
-  assert.equal(page.calls.umami[0].data.title, "Sand Drive");
+  assert.equal(plays().length, 1);
+  assert.equal(plays()[0].data.title, "Sand Drive");
 
   page.click("nextButton");
   page.fire(page.audio, "play");
-  assert.equal(page.calls.umami.length, 2);
-  assert.equal(page.calls.umami[1].data.title, "International Desert Drive");
+  assert.equal(plays().length, 2);
+  assert.equal(plays()[1].data.title, "International Desert Drive");
 });
 
 test("media session gets metadata and working transport handlers", async () => {

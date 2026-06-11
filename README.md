@@ -56,12 +56,35 @@ playerGeometryTools.log(); // copy the values back into config/player.json
 - Lock-screen / headphone controls work via the Media Session API
 - Playback position is remembered locally and resumes on the next visit
 
+## Share links
+
+Every song has a stable link that opens the site cued to it:
+`https://tymmop.com/?track=<slug>` where the slug is the title lowercased
+with non-alphanumerics turned into dashes. Current slugs:
+`sand-drive`, `international-desert-drive`, `99-to-infinity`,
+`rooftop-fireworks`, `things-just-r`.
+
+## Analytics (Umami Cloud)
+
+Page views, visitors, and referrers are automatic. Custom events:
+
+| Event | Fires when | Properties |
+| --- | --- | --- |
+| `track-play` | a song starts (once per song; resumes don't double-count) | `title` |
+| `track-complete` | a song plays to the end | `title` |
+| `track-skip` | the listener jumps away mid-song | `title`, `at` (seconds) |
+| `track-link-open` | a visitor arrives via a share link | `title` |
+| `link-click` | a corner-nav artist link is clicked | `label` |
+
+In the Umami dashboard, open an event and view its property breakdown
+(e.g. `title`) to see per-song numbers — plays vs completes vs skips is
+effectively a per-song retention report.
+
 ## Deploying
 
 Cloudflare Pages builds from this repo: pushes to `main` deploy
 production, other branches get preview URLs (no build command — the repo
-root is served as-is). Analytics is Umami Cloud; page views plus
-`track-play` and `link-click` events.
+root is served as-is).
 
 Current state of the takeover:
 

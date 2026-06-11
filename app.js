@@ -109,6 +109,26 @@
     }
   }
 
+  // share-link slugs: "Rooftop Fireworks" -> "rooftop-fireworks"
+  const slugifyTitle = (title) =>
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  function readTrackFromUrl() {
+    try {
+      const slug = new URLSearchParams(window.location.search).get("track");
+      if (!slug) return null;
+      const index = playlist.findIndex(
+        (track) => slugifyTitle(track.title) === slug.toLowerCase()
+      );
+      return index === -1 ? null : index;
+    } catch (error) {
+      return null;
+    }
+  }
+
   function setVar(name, value) {
     rootStyle.setProperty(name, String(value));
   }
@@ -357,6 +377,14 @@
 
   function stepTrack(direction) {
     hasUserControlled = true;
+    // a deliberate jump away from a song that was playing is a skip;
+    // natural track end (audioEl.ended) is not
+    if (isPlaying && hasTrackedPlay && !audioEl.ended) {
+      trackEvent("track-skip", {
+        title: playlist[currentTrackIndex].title,
+        at: Math.round(audioEl.currentTime || 0),
+      });
+    }
     loadTrack(currentTrackIndex + direction);
     if (isPlaying) play();
   }
@@ -857,6 +885,9 @@
     });
 
     audioEl.addEventListener("ended", () => {
+      trackEvent("track-complete", {
+        title: playlist[currentTrackIndex].title,
+      });
       stepTrack(1);
       play();
     });
@@ -912,11 +943,20 @@
 
   function initializePlayer() {
     audioEl.volume = DEFAULT_VOLUME;
-    const resume = readResumeState();
-    loadTrack(
-      resume ? resume.trackIndex : currentTrackIndex,
-      resume ? resume.position : null
-    );
+    const linkedIndex = readTrackFromUrl();
+    if (linkedIndex !== null) {
+      // a shared link is explicit intent: it beats resume state and a
+      // late-arriving config must not replace it
+      hasUserControlled = true;
+      loadTrack(linkedIndex);
+      trackEvent("track-link-open", { title: playlist[linkedIndex].title });
+    } else {
+      const resume = readResumeState();
+      loadTrack(
+        resume ? resume.trackIndex : currentTrackIndex,
+        resume ? resume.position : null
+      );
+    }
     updatePlayStateVisual(false);
   }
 

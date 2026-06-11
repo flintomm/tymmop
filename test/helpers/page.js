@@ -41,13 +41,14 @@ async function createPage({
   mobile = false,
   storage = {},
   configMode = "immediate", // "immediate" | "pending" | "manual"
+  url = "https://tymmop.com/",
 } = {}) {
   const html = read("index.html");
   const appJs = read("app.js");
   const configJson = config !== undefined ? config : readConfig();
 
   const dom = new JSDOM(html, {
-    url: "https://tymmop.com/",
+    url,
     pretendToBeVisual: true,
     runScripts: "outside-only",
   });
