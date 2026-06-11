@@ -10,6 +10,8 @@
   --overlay-scale: 1;
   --overlay-translate-x-pct: 0;
   --overlay-translate-y-pct: 0;
+  --video-offset-y-pct: -6;
+  --video-scale: 1.12;
   --player-bg: rgba(14, 20, 27, 0.76);
   --player-border: rgba(130, 202, 255, 0.35);
   --player-accent: #59e3ff;
@@ -70,6 +72,10 @@ main {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  /* lift the road into the windshield; scale covers the gap the shift
+     would leave (scale >= 1 + |offset|/50) */
+  transform: translateY(calc(var(--video-offset-y-pct) * 1%))
+    scale(var(--video-scale));
   pointer-events: none;
 }
 

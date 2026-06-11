@@ -6,7 +6,9 @@
     "playerHeightPct": 9.1,
     "overlayScale": 1.0,
     "overlayTranslateXPct": 0,
-    "overlayTranslateYPct": 0
+    "overlayTranslateYPct": 0,
+    "videoOffsetYPct": -6,
+    "videoScale": 1.12
   },
   "playlist": [
     {

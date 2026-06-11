@@ -19,6 +19,8 @@
     overlayScale: 1,
     overlayTranslateXPct: 0,
     overlayTranslateYPct: 0,
+    videoOffsetYPct: -6,
+    videoScale: 1.12,
   };
 
   // fallbacks if config/player.json is missing or invalid; the config file
@@ -153,6 +155,8 @@
     setVar("--player-height-pct", geometryState.playerHeightPct);
     setVar("--overlay-translate-x-pct", geometryState.overlayTranslateXPct);
     setVar("--overlay-translate-y-pct", geometryState.overlayTranslateYPct);
+    setVar("--video-offset-y-pct", geometryState.videoOffsetYPct);
+    setVar("--video-scale", geometryState.videoScale);
     updateOverlayTransform();
     updateTrackTitleMarquee();
   }

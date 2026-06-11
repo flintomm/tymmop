@@ -129,11 +129,20 @@ test("track ends: playlist advances and keeps playing", async () => {
 
 test("config geometry lands in css custom properties", async () => {
   const page = await createPage({
-    config: { desktop: { playerLeftPct: 11.5, playerTopPct: 22.5 } },
+    config: {
+      desktop: {
+        playerLeftPct: 11.5,
+        playerTopPct: 22.5,
+        videoOffsetYPct: -9,
+        videoScale: 1.2,
+      },
+    },
   });
   const rootStyle = page.document.documentElement.style;
   assert.equal(rootStyle.getPropertyValue("--player-left-pct"), "11.5");
   assert.equal(rootStyle.getPropertyValue("--player-top-pct"), "22.5");
+  assert.equal(rootStyle.getPropertyValue("--video-offset-y-pct"), "-9");
+  assert.equal(rootStyle.getPropertyValue("--video-scale"), "1.2");
 });
 
 test("playerGeometryTools.set applies numbers and ignores junk", async () => {

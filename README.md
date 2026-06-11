@@ -49,6 +49,16 @@ playerGeometryTools.set({ playerLeftPct: 48.2, playerTopPct: 51.1 });
 playerGeometryTools.log(); // copy the values back into config/player.json
 ```
 
+The background road video can be lifted or zoomed the same way:
+
+```js
+playerGeometryTools.set({ videoOffsetYPct: -10, videoScale: 1.2 });
+```
+
+Negative `videoOffsetYPct` raises the road in the windshield. Keep
+`videoScale >= 1 + |videoOffsetYPct| / 50` so the shifted video still
+covers the screen edges.
+
 ## Player controls
 
 - Space / Enter: play–pause; `←` / `→`: seek ±5 s; `n` / `p`: next/previous

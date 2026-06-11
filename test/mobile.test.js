@@ -39,3 +39,13 @@ test("buttons extend their tap targets beyond the visible circle", () => {
   const css = read("styles.css");
   assert.match(css, /button::after\s*{[^}]*inset:\s*-\d+px/);
 });
+
+test("background media transform is driven by the geometry vars", () => {
+  const css = read("styles.css");
+  const block = css.slice(
+    css.indexOf(".background-media"),
+    css.indexOf(".background-video")
+  );
+  assert.match(block, /translateY\(calc\(var\(--video-offset-y-pct\)/);
+  assert.match(block, /scale\(var\(--video-scale\)\)/);
+});

@@ -62,6 +62,8 @@ test("config/player.json parses and has sane desktop geometry", () => {
     "playerWidthPct",
     "playerHeightPct",
     "overlayScale",
+    "videoOffsetYPct",
+    "videoScale",
   ]) {
     assert.equal(
       typeof config.desktop[key],
