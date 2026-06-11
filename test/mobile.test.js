@@ -51,6 +51,15 @@ test("docked stylesheet contract: fixed bar with finger-sized controls", () => {
   assert.match(docked, /#playPauseButton\s*{[^}]*width:\s*3\.25rem/);
 });
 
+test("share button is hidden in the bezel, visible when docked", () => {
+  const css = read("styles.css");
+  assert.match(css, /\.share-button\s*{\s*display:\s*none/);
+  assert.match(
+    css,
+    /\.player-shell--docked \.share-button\s*{[^}]*display:\s*grid/
+  );
+});
+
 test("app.js uses a media query to drive dock mode", () => {
   const js = read("app.js");
   assert.match(js, /matchMedia/);

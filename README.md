@@ -64,6 +64,10 @@ with non-alphanumerics turned into dashes. Current slugs:
 `sand-drive`, `international-desert-drive`, `99-to-infinity`,
 `rooftop-fireworks`, `things-just-r`.
 
+On phones the docked player has a share button (native share sheet, with
+copy-link fallback). On desktop the address bar always tracks the current
+song, so copying the URL shares it.
+
 ## Analytics (Umami Cloud)
 
 Page views, visitors, and referrers are automatic. Custom events:
@@ -73,7 +77,8 @@ Page views, visitors, and referrers are automatic. Custom events:
 | `track-play` | a song starts (once per song; resumes don't double-count) | `title` |
 | `track-complete` | a song plays to the end | `title` |
 | `track-skip` | the listener jumps away mid-song | `title`, `at` (seconds) |
-| `track-link-open` | a visitor arrives via a share link | `title` |
+| `track-link-open` | a visitor arrives via a share link (once per session) | `title` |
+| `track-share` | the share button is used | `title` |
 | `link-click` | a corner-nav artist link is clicked | `label` |
 
 In the Umami dashboard, open an event and view its property breakdown

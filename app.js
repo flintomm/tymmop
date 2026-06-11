@@ -71,6 +71,7 @@
     nextButton: document.getElementById("nextButton"),
     progressBar: document.getElementById("progressBar"),
     progressFill: document.getElementById("progressFill"),
+    shareButton: document.getElementById("shareButton"),
   };
 
   let geometryState = { ...DEFAULT_GEOMETRY };
@@ -88,6 +89,9 @@
   const MOBILE_QUERY = "(max-width: 700px)";
   const BASE_TITLE = document.title;
   const STORAGE_KEY = "tymmop:player-state";
+  // count a share-link arrival once per browsing session, so the address
+  // bar staying synced to ?track= doesn't recount every reload
+  const LINK_OPEN_FLAG = "tymmop:link-open-tracked";
   const RESUME_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
   const RESUME_SAVE_INTERVAL_MS = 3000;
 
@@ -126,6 +130,46 @@
       return index === -1 ? null : index;
     } catch (error) {
       return null;
+    }
+  }
+
+  function buildShareUrl(track) {
+    return `${window.location.origin}${window.location.pathname}?track=${slugifyTitle(track.title)}`;
+  }
+
+  // keep the address bar pointing at the current song so copying the URL
+  // always shares the right track
+  function syncUrlToTrack(track) {
+    try {
+      window.history.replaceState(null, "", `?track=${slugifyTitle(track.title)}`);
+    } catch (error) {
+      /* sandboxed contexts can refuse history access — non-essential */
+    }
+  }
+
+  function shareCurrentTrack() {
+    const track = playlist[currentTrackIndex];
+    if (!track) return;
+    const url = buildShareUrl(track);
+    trackEvent("track-share", { title: track.title });
+    if (navigator.share) {
+      navigator
+        .share({ title: `${track.title} — tymmo p`, url })
+        .catch(() => {
+          /* user dismissed the share sheet */
+        });
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          elements.status.textContent = "Link copied";
+          window.setTimeout(() => {
+            elements.status.textContent = isPlaying ? "Now Playing" : "Paused";
+          }, 1600);
+        })
+        .catch(() => {});
     }
   }
 
@@ -325,6 +369,7 @@
     hasTrackedPlay = false;
     updateProgressFill(0, 0);
     updateMediaSessionMetadata(track);
+    syncUrlToTrack(track);
     updateTrackTitleMarquee();
 
     // a track chosen while paused fires no audio events, so persist it here
@@ -827,6 +872,9 @@
     elements.playPauseButton.addEventListener("click", togglePlay);
     elements.prevButton.addEventListener("click", () => stepTrack(-1));
     elements.nextButton.addEventListener("click", () => stepTrack(1));
+    if (elements.shareButton) {
+      elements.shareButton.addEventListener("click", shareCurrentTrack);
+    }
 
     const refreshClock = () => {
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
@@ -949,7 +997,14 @@
       // late-arriving config must not replace it
       hasUserControlled = true;
       loadTrack(linkedIndex);
-      trackEvent("track-link-open", { title: playlist[linkedIndex].title });
+      try {
+        if (!window.sessionStorage.getItem(LINK_OPEN_FLAG)) {
+          window.sessionStorage.setItem(LINK_OPEN_FLAG, "1");
+          trackEvent("track-link-open", { title: playlist[linkedIndex].title });
+        }
+      } catch (error) {
+        trackEvent("track-link-open", { title: playlist[linkedIndex].title });
+      }
     } else {
       const resume = readResumeState();
       loadTrack(

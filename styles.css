@@ -421,6 +421,19 @@ button:focus-visible {
   height: 3.25rem;
 }
 
+/* desktop bezel has no room: share lives in the synced address bar there */
+.share-button {
+  display: none;
+}
+
+.player-shell--docked .share-button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  background: rgba(25, 37, 48, 0.6);
+}
+
 .player-scrim {
   position: fixed;
   inset: 0;

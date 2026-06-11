@@ -85,6 +85,7 @@ test("player chrome elements the script depends on all exist", () => {
     "nextButton",
     "progressBar",
     "progressFill",
+    "shareButton",
     "audioElement",
     "overlayImage",
     "overlayWrapper",
