@@ -63,6 +63,8 @@
     playPauseIcon: document.getElementById("playPauseIcon"),
     prevButton: document.getElementById("prevButton"),
     nextButton: document.getElementById("nextButton"),
+    progressBar: document.getElementById("progressBar"),
+    progressFill: document.getElementById("progressFill"),
   };
 
   let geometryState = { ...DEFAULT_GEOMETRY };
@@ -70,6 +72,7 @@
   let overlayNatural = { width: 0, height: 0 };
   let currentTrackIndex = 0;
   let isPlaying = false;
+  let hasTrackedPlay = false;
 
   const DEFAULT_VOLUME = 1.0;
   const SEEK_SCRUB_STEP = 5;
@@ -78,7 +81,6 @@
   const CROSSFADE_LEAD_TIME = 2.5;
 
   audioEl.preload = "metadata";
-  audioEl.crossOrigin = "anonymous";
 
   function setVar(name, value) {
     rootStyle.setProperty(name, String(value));
@@ -134,6 +136,27 @@
   function updateTimeDisplay(current, duration) {
     elements.currentTime.textContent = formatTime(current);
     elements.duration.textContent = formatTime(duration);
+  }
+
+  function updateProgressFill(current, duration) {
+    if (!elements.progressFill) return;
+    const ratio =
+      Number.isFinite(duration) && duration > 0
+        ? Math.min(Math.max(current / duration, 0), 1)
+        : 0;
+    elements.progressFill.style.width = `${ratio * 100}%`;
+  }
+
+  function updateMediaSessionMetadata(track) {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title,
+      artist: track.artist != null ? track.artist : "tymmo p",
+      album: "between the spaces",
+      artwork: [
+        { src: "assets/og-card.jpg", sizes: "1200x630", type: "image/jpeg" },
+      ],
+    });
   }
 
   function updatePlayStateVisual(isNowPlaying) {
@@ -195,6 +218,9 @@
     elements.status.textContent = isPlaying ? "Now Playing" : "Paused";
     elements.currentTime.textContent = "0:00";
     elements.duration.textContent = "0:00";
+    hasTrackedPlay = false;
+    updateProgressFill(0, 0);
+    updateMediaSessionMetadata(track);
     updateTrackTitleMarquee();
 
     audioEl.src = track.src;
@@ -576,20 +602,32 @@
 
   function wirePlayerEvents() {
     elements.playPauseButton.addEventListener("click", togglePlay);
-    elements.prevButton.addEventListener("click", () => stepTrack(1));
-    elements.nextButton.addEventListener("click", () => stepTrack(-1));
+    elements.prevButton.addEventListener("click", () => stepTrack(-1));
+    elements.nextButton.addEventListener("click", () => stepTrack(1));
 
     audioEl.addEventListener("loadedmetadata", () => {
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
+      updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
     });
 
     audioEl.addEventListener("timeupdate", () => {
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
+      updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
     });
 
     audioEl.addEventListener("play", () => {
       isPlaying = true;
       updatePlayStateVisual(true);
+      if (
+        !hasTrackedPlay &&
+        window.umami &&
+        typeof window.umami.track === "function"
+      ) {
+        window.umami.track("track-play", {
+          title: playlist[currentTrackIndex].title,
+        });
+        hasTrackedPlay = true;
+      }
     });
 
     audioEl.addEventListener("pause", () => {
@@ -603,6 +641,47 @@
       stepTrack(1);
       play();
     });
+
+    if (elements.progressBar) {
+      let isScrubbing = false;
+
+      const seekFromPointer = (event) => {
+        const rect = elements.progressBar.getBoundingClientRect();
+        if (!rect.width) return;
+        if (!Number.isFinite(audioEl.duration) || audioEl.duration <= 0) return;
+        const ratio = Math.min(
+          Math.max((event.clientX - rect.left) / rect.width, 0),
+          1
+        );
+        audioEl.currentTime = ratio * audioEl.duration;
+        updateProgressFill(audioEl.currentTime, audioEl.duration);
+      };
+
+      elements.progressBar.addEventListener("pointerdown", (event) => {
+        isScrubbing = true;
+        if (elements.progressBar.setPointerCapture) {
+          elements.progressBar.setPointerCapture(event.pointerId);
+        }
+        seekFromPointer(event);
+      });
+      elements.progressBar.addEventListener("pointermove", (event) => {
+        if (isScrubbing) seekFromPointer(event);
+      });
+      const endScrub = () => {
+        isScrubbing = false;
+      };
+      elements.progressBar.addEventListener("pointerup", endScrub);
+      elements.progressBar.addEventListener("pointercancel", endScrub);
+    }
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.setActionHandler("play", play);
+      navigator.mediaSession.setActionHandler("pause", pause);
+      navigator.mediaSession.setActionHandler("previoustrack", () =>
+        stepTrack(-1)
+      );
+      navigator.mediaSession.setActionHandler("nexttrack", () => stepTrack(1));
+    }
 
     document.addEventListener("keydown", handleKeyControls);
     window.addEventListener("resize", () => {
