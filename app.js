@@ -22,11 +22,22 @@
   };
 
   // fallbacks if config/player.json is missing or invalid; the config file
-  // is the source of truth for the playlist, video sequence, and links
+  // is the source of truth for the playlist, video sequence, and links.
+  // The sequence repeats files on purpose — repetition is airtime weighting.
   const DEFAULT_VIDEO_SEQUENCE = [
     "assets/road.mp4",
     "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
+    "assets/road3.mp4",
     "assets/road1.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
+    "assets/road2.mp4",
     "assets/road2.mp4",
   ];
 
@@ -82,8 +93,21 @@
 
   let pendingResumePosition = null;
   let lastResumeSaveAt = 0;
+  // once the visitor has taken any player action, a late-arriving config
+  // must not clobber what they are listening to
+  let hasUserControlled = false;
+  let marqueeRafId = null;
 
   audioEl.preload = "metadata";
+
+  const isNonEmptyString = (value) =>
+    typeof value === "string" && value.trim().length > 0;
+
+  function trackEvent(event, data) {
+    if (window.umami && typeof window.umami.track === "function") {
+      window.umami.track(event, data);
+    }
+  }
 
   function setVar(name, value) {
     rootStyle.setProperty(name, String(value));
@@ -180,7 +204,13 @@
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const state = JSON.parse(raw);
-      if (
+      if (typeof state.src === "string") {
+        // re-anchor by track identity: the playlist is config-editable, so
+        // a stored index may point at a different song after a reorder
+        const bySrc = playlist.findIndex((track) => track.src === state.src);
+        if (bySrc === -1) return null;
+        state.trackIndex = bySrc;
+      } else if (
         !Number.isInteger(state.trackIndex) ||
         state.trackIndex < 0 ||
         state.trackIndex >= playlist.length
@@ -200,13 +230,16 @@
     }
   }
 
-  function saveResumeState() {
+  function saveResumeState(position = audioEl.currentTime || 0) {
+    lastResumeSaveAt = Date.now();
     try {
+      const track = playlist[currentTrackIndex];
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
           trackIndex: currentTrackIndex,
-          position: audioEl.currentTime || 0,
+          src: track ? track.src : null,
+          position,
           savedAt: Date.now(),
         })
       );
@@ -225,7 +258,11 @@
     titleContainer.style.removeProperty("--track-scroll-duration");
     titleInner.style.removeProperty("--track-scroll-gap");
 
-    requestAnimationFrame(() => {
+    if (marqueeRafId !== null) {
+      cancelAnimationFrame(marqueeRafId);
+    }
+    marqueeRafId = requestAnimationFrame(() => {
+      marqueeRafId = null;
       const containerWidth = titleContainer.clientWidth;
       const textWidth = title.scrollWidth;
 
@@ -254,9 +291,9 @@
     });
   }
 
-  function loadTrack(index) {
+  function loadTrack(index, resumeAtSeconds = null) {
     if (!playlist.length) return;
-    pendingResumePosition = null;
+    pendingResumePosition = resumeAtSeconds;
     currentTrackIndex = (index + playlist.length) % playlist.length;
     const track = playlist[currentTrackIndex];
     elements.title.textContent = track.title;
@@ -269,6 +306,11 @@
     updateProgressFill(0, 0);
     updateMediaSessionMetadata(track);
     updateTrackTitleMarquee();
+
+    // a track chosen while paused fires no audio events, so persist it here
+    if (hasUserControlled) {
+      saveResumeState(0);
+    }
 
     audioEl.src = track.src;
     audioEl.load();
@@ -285,6 +327,7 @@
 
   function play() {
     if (!playlist.length) return;
+    hasUserControlled = true;
     isPlaying = true;
     audioEl
       .play()
@@ -298,6 +341,7 @@
   }
 
   function pause() {
+    hasUserControlled = true;
     isPlaying = false;
     audioEl.pause();
     updatePlayStateVisual(false);
@@ -312,6 +356,7 @@
   }
 
   function stepTrack(direction) {
+    hasUserControlled = true;
     loadTrack(currentTrackIndex + direction);
     if (isPlaying) play();
   }
@@ -374,22 +419,38 @@
   }
 
   function applyConfigContent(config) {
+    let playlistChanged = false;
     if (config && Array.isArray(config.playlist)) {
       const tracks = config.playlist.filter(
         (track) =>
-          track &&
-          typeof track.src === "string" &&
-          typeof track.title === "string"
+          track && isNonEmptyString(track.src) && isNonEmptyString(track.title)
       );
-      if (tracks.length) playlist = tracks;
+      if (tracks.length) {
+        playlistChanged =
+          tracks.length !== playlist.length ||
+          tracks.some((track, i) => track.src !== playlist[i].src);
+        playlist = tracks;
+      }
     }
     if (config && Array.isArray(config.videoSequence)) {
-      const sources = config.videoSequence.filter(
-        (src) => typeof src === "string" && src.trim().length
-      );
+      const sources = config.videoSequence.filter(isNonEmptyString);
       if (sources.length) videoSources = sources;
     }
     renderSiteLinks(config && Array.isArray(config.links) ? config.links : []);
+
+    // the player boots on the built-in defaults; reconcile only when the
+    // config actually differs, and never clobber a session in progress
+    if (playlistChanged) {
+      if (hasUserControlled || isPlaying) {
+        currentTrackIndex = Math.min(currentTrackIndex, playlist.length - 1);
+      } else {
+        const resume = readResumeState();
+        loadTrack(
+          resume ? resume.trackIndex : 0,
+          resume ? resume.position : null
+        );
+      }
+    }
   }
 
   function renderSiteLinks(links) {
@@ -414,9 +475,7 @@
       anchor.target = "_blank";
       anchor.rel = "noopener noreferrer";
       anchor.addEventListener("click", () => {
-        if (window.umami && typeof window.umami.track === "function") {
-          window.umami.track("link-click", { label });
-        }
+        trackEvent("link-click", { label });
       });
       nav.appendChild(anchor);
     });
@@ -465,16 +524,22 @@
     // position: fixed cannot escape the overlay wrapper's transform, so
     // docking on small screens requires physically moving the node to body
     const homeParent = playerShell.parentElement;
-    const homeAnchor = playerShell.nextElementSibling;
     const query = window.matchMedia(MOBILE_QUERY);
 
     const applyDockMode = (isMobile) => {
+      // moving a node drops focus to <body>; restore it for keyboard users
+      const focused = playerShell.contains(document.activeElement)
+        ? document.activeElement
+        : null;
       if (isMobile) {
         playerShell.classList.add("player-shell--docked");
         document.body.appendChild(playerShell);
       } else {
         playerShell.classList.remove("player-shell--docked");
-        homeParent.insertBefore(playerShell, homeAnchor);
+        homeParent.appendChild(playerShell);
+      }
+      if (focused && typeof focused.focus === "function") {
+        focused.focus();
       }
       updateTrackTitleMarquee();
     };
@@ -496,8 +561,9 @@
       return;
     }
 
-    const sources = videoSources.filter((src) => typeof src === "string" && src.trim().length);
-    if (!sources.length) {
+    // read live so a config arriving after boot updates the rotation
+    const getSources = () => videoSources.filter(isNonEmptyString);
+    if (!getSources().length) {
       console.warn("No background video sources configured.");
       if (fallbackImage) {
         fallbackImage.classList.add("is-visible");
@@ -522,7 +588,7 @@
     }
 
     const normalizeIndex = (index) => {
-      const count = sources.length;
+      const count = getSources().length;
       return ((index % count) + count) % count;
     };
 
@@ -565,7 +631,7 @@
         }
       });
 
-      singleVideo.src = sources[0];
+      singleVideo.src = getSources()[0];
       singleVideo.load();
 
       const startPlaybackSingle = () => {
@@ -598,7 +664,7 @@
         return Promise.reject(new Error(`Missing background video slot ${slot}`));
       }
 
-      const source = sources[normalizeIndex(sourceIndex)];
+      const source = getSources()[normalizeIndex(sourceIndex)];
 
       return new Promise((resolve, reject) => {
         const handleCanPlay = () => {
@@ -734,24 +800,39 @@
     elements.prevButton.addEventListener("click", () => stepTrack(-1));
     elements.nextButton.addEventListener("click", () => stepTrack(1));
 
-    audioEl.addEventListener("loadedmetadata", () => {
+    const refreshClock = () => {
+      updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
+      updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
+    };
+
+    // streamed responses can report duration Infinity at loadedmetadata and
+    // only settle on durationchange — keep the resume seek pending until a
+    // real duration exists
+    const applyPendingResume = () => {
+      if (pendingResumePosition === null) return;
+      if (!Number.isFinite(audioEl.duration) || audioEl.duration <= 0) return;
       if (
-        pendingResumePosition !== null &&
-        Number.isFinite(audioEl.duration) &&
+        pendingResumePosition > 0 &&
         pendingResumePosition < audioEl.duration
       ) {
         audioEl.currentTime = pendingResumePosition;
       }
       pendingResumePosition = null;
-      updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
-      updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
+    };
+
+    audioEl.addEventListener("loadedmetadata", () => {
+      applyPendingResume();
+      refreshClock();
+    });
+
+    audioEl.addEventListener("durationchange", () => {
+      applyPendingResume();
+      refreshClock();
     });
 
     audioEl.addEventListener("timeupdate", () => {
-      updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
-      updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
+      refreshClock();
       if (Date.now() - lastResumeSaveAt >= RESUME_SAVE_INTERVAL_MS) {
-        lastResumeSaveAt = Date.now();
         saveResumeState();
       }
     });
@@ -759,24 +840,20 @@
     audioEl.addEventListener("play", () => {
       isPlaying = true;
       updatePlayStateVisual(true);
-      if (
-        !hasTrackedPlay &&
-        window.umami &&
-        typeof window.umami.track === "function"
-      ) {
-        window.umami.track("track-play", {
-          title: playlist[currentTrackIndex].title,
-        });
+      if (!hasTrackedPlay) {
+        trackEvent("track-play", { title: playlist[currentTrackIndex].title });
         hasTrackedPlay = true;
       }
     });
 
     audioEl.addEventListener("pause", () => {
+      // natural track end also fires pause; saving there would pin the
+      // finished track at its final position instead of the next one
       if (!audioEl.ended) {
         isPlaying = false;
         updatePlayStateVisual(false);
+        saveResumeState();
       }
-      saveResumeState();
     });
 
     audioEl.addEventListener("ended", () => {
@@ -791,6 +868,7 @@
         const rect = elements.progressBar.getBoundingClientRect();
         if (!rect.width) return;
         if (!Number.isFinite(audioEl.duration) || audioEl.duration <= 0) return;
+        hasUserControlled = true;
         const ratio = Math.min(
           Math.max((event.clientX - rect.left) / rect.width, 0),
           1
@@ -835,10 +913,10 @@
   function initializePlayer() {
     audioEl.volume = DEFAULT_VOLUME;
     const resume = readResumeState();
-    loadTrack(resume ? resume.trackIndex : currentTrackIndex);
-    if (resume) {
-      pendingResumePosition = resume.position;
-    }
+    loadTrack(
+      resume ? resume.trackIndex : currentTrackIndex,
+      resume ? resume.position : null
+    );
     updatePlayStateVisual(false);
   }
 
@@ -851,8 +929,13 @@
     });
   }
 
+  // boot fully on the built-in defaults so the player and background work
+  // even when the config fetch is slow or never settles; the config is
+  // applied as an upgrade when (if) it arrives
   setupResponsiveDock();
   wirePlayerEvents();
+  setupBackgroundVideo();
+  initializePlayer();
 
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready
@@ -873,8 +956,6 @@
   loadConfig().then((config) => {
     applyConfigContent(config);
     setupPlayerGeometryTools();
-    setupBackgroundVideo();
-    initializePlayer();
     updateOverlayTransform();
   });
 })();

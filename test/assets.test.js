@@ -2,16 +2,14 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const { read, ROOT } = require("./helpers/page.js");
+const {
+  read,
+  readConfig,
+  assertFileExists: assertFileExistsRaw,
+} = require("./helpers/page.js");
 
-function assertFileExists(rel, source) {
-  assert.ok(
-    fs.existsSync(path.join(ROOT, rel)),
-    `${source} references "${rel}" but the file does not exist`
-  );
-}
+const assertFileExists = (rel, source) =>
+  assertFileExistsRaw(assert, rel, source);
 
 test("every relative src/href/poster/srcset in index.html points at a real file", () => {
   const html = read("index.html");
@@ -56,7 +54,7 @@ test("every url() in styles.css exists", () => {
 });
 
 test("config/player.json parses and has sane desktop geometry", () => {
-  const config = JSON.parse(read("config/player.json"));
+  const config = readConfig();
   assert.ok(config.desktop, "config needs a desktop block");
   for (const key of [
     "playerLeftPct",

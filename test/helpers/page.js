@@ -6,8 +6,29 @@ const { JSDOM } = require("jsdom");
 
 const ROOT = path.join(__dirname, "..", "..");
 
+const fileCache = new Map();
 function read(rel) {
-  return fs.readFileSync(path.join(ROOT, rel), "utf8");
+  if (!fileCache.has(rel)) {
+    fileCache.set(rel, fs.readFileSync(path.join(ROOT, rel), "utf8"));
+  }
+  return fileCache.get(rel);
+}
+
+function readConfig() {
+  return JSON.parse(read("config/player.json"));
+}
+
+function assertFileExists(assert, rel, source) {
+  assert.ok(
+    fs.existsSync(path.join(ROOT, rel)),
+    `${source} references "${rel}" but the file does not exist`
+  );
+}
+
+async function tick(times = 1) {
+  for (let i = 0; i < times; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
 }
 
 /**
@@ -15,11 +36,15 @@ function read(rel) {
  * app touches (media element, media session, umami, fetch for config)
  * replaced by inspectable test doubles.
  */
-async function createPage({ config, mobile = false, storage = {} } = {}) {
+async function createPage({
+  config,
+  mobile = false,
+  storage = {},
+  configMode = "immediate", // "immediate" | "pending" | "manual"
+} = {}) {
   const html = read("index.html");
   const appJs = read("app.js");
-  const configJson =
-    config !== undefined ? config : JSON.parse(read("config/player.json"));
+  const configJson = config !== undefined ? config : readConfig();
 
   const dom = new JSDOM(html, {
     url: "https://tymmop.com/",
@@ -86,12 +111,19 @@ async function createPage({ config, mobile = false, storage = {} } = {}) {
     return mql;
   };
 
+  let releaseConfigFetch = null;
   window.fetch = (url) => {
     if (String(url).includes("config/player.json")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(configJson),
-      });
+      const response = { ok: true, json: () => Promise.resolve(configJson) };
+      if (configMode === "pending") {
+        return new Promise(() => {}); // a fetch that never settles
+      }
+      if (configMode === "manual") {
+        return new Promise((resolve) => {
+          releaseConfigFetch = () => resolve(response);
+        });
+      }
+      return Promise.resolve(response);
     }
     return Promise.reject(new Error(`unexpected fetch: ${url}`));
   };
@@ -103,8 +135,7 @@ async function createPage({ config, mobile = false, storage = {} } = {}) {
   window.eval(appJs);
 
   // let loadConfig() and other startup promises settle
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await tick(2);
 
   const document = window.document;
   const audio = document.getElementById("audioElement");
@@ -116,6 +147,11 @@ async function createPage({ config, mobile = false, storage = {} } = {}) {
     calls,
     mediaSession,
     el: (id) => document.getElementById(id),
+    tick,
+    async resolveConfig() {
+      if (releaseConfigFetch) releaseConfigFetch();
+      await tick(2);
+    },
     setMobile(matches) {
       mediaQueries
         .filter((mql) => mql.media.includes("max-width"))
@@ -132,22 +168,19 @@ async function createPage({ config, mobile = false, storage = {} } = {}) {
     fire(target, type) {
       target.dispatchEvent(new window.Event(type));
     },
-    setAudioState({ duration, currentTime }) {
-      if (duration !== undefined) {
-        Object.defineProperty(audio, "duration", {
-          value: duration,
+    setAudioState({ duration, currentTime, paused, ended }) {
+      const define = (prop, value, writable = false) =>
+        Object.defineProperty(audio, prop, {
+          value,
           configurable: true,
+          ...(writable ? { writable: true } : {}),
         });
-      }
-      if (currentTime !== undefined) {
-        Object.defineProperty(audio, "currentTime", {
-          value: currentTime,
-          configurable: true,
-          writable: true,
-        });
-      }
+      if (duration !== undefined) define("duration", duration);
+      if (currentTime !== undefined) define("currentTime", currentTime, true);
+      if (paused !== undefined) define("paused", paused);
+      if (ended !== undefined) define("ended", ended);
     },
   };
 }
 
-module.exports = { createPage, read, ROOT };
+module.exports = { createPage, read, readConfig, assertFileExists, tick, ROOT };

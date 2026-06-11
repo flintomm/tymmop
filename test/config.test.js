@@ -2,11 +2,13 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const { createPage, read, ROOT } = require("./helpers/page.js");
+const {
+  createPage,
+  readConfig,
+  assertFileExists,
+} = require("./helpers/page.js");
 
-const config = JSON.parse(read("config/player.json"));
+const config = readConfig();
 
 test("config playlist entries are complete", () => {
   assert.ok(Array.isArray(config.playlist) && config.playlist.length >= 1);
@@ -22,10 +24,7 @@ test("config video sequence references real files", () => {
   assert.ok(Array.isArray(config.videoSequence) && config.videoSequence.length >= 1);
   for (const src of config.videoSequence) {
     if (!/^https?:\/\//.test(src)) {
-      assert.ok(
-        fs.existsSync(path.join(ROOT, src)),
-        `videoSequence references missing file ${src}`
-      );
+      assertFileExists(assert, src, "config videoSequence");
     }
   }
 });
@@ -66,12 +65,15 @@ test("an invalid config playlist falls back to the built-in one", async () => {
   assert.equal(page.el("trackTitle").textContent, "Sand Drive");
 });
 
-test("background video sequence comes from config", async () => {
+test("background video rotation picks up the config sequence", async () => {
   const page = await createPage({
     config: { videoSequence: ["assets/road2.mp4"] },
   });
-  const video = page.el("backgroundVideoPrimary");
-  assert.match(video.src, /assets\/road2\.mp4$/);
+  // the first clip boots from built-in defaults (config may still be in flight)
+  assert.match(page.el("backgroundVideoPrimary").src, /assets\/road\.mp4$/);
+  // when the active clip ends, the rotation reads the config sequence
+  page.fire(page.el("backgroundVideoPrimary"), "ended");
+  assert.match(page.el("backgroundVideoSecondary").src, /assets\/road2\.mp4$/);
 });
 
 test("links render as new-tab anchors and stay hidden when empty", async () => {

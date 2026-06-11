@@ -41,16 +41,13 @@ test("keyboard shortcuts n/p step tracks", async () => {
 test("play/pause updates status, icon, and aria labels", async () => {
   const page = await createPage();
   page.click("playPauseButton");
-  await new Promise((r) => setTimeout(r, 0));
+  await page.tick();
   assert.ok(page.calls.play >= 1, "audio.play() must be called");
   assert.equal(page.el("trackStatus").textContent, "Now Playing");
   assert.equal(page.el("playPauseButton").getAttribute("aria-label"), "Pause");
 
   // the element is not really playing in jsdom; simulate the paused=false
-  Object.defineProperty(page.audio, "paused", {
-    value: false,
-    configurable: true,
-  });
+  page.setAudioState({ paused: false });
   page.click("playPauseButton");
   assert.ok(page.calls.pause >= 1, "audio.pause() must be called");
   assert.equal(page.el("trackStatus").textContent, "Paused");
@@ -61,13 +58,10 @@ test("browser tab title follows playback", async () => {
   const page = await createPage();
   const baseTitle = page.document.title;
   page.click("playPauseButton");
-  await new Promise((r) => setTimeout(r, 0));
+  await page.tick();
   assert.equal(page.document.title, "▶ Sand Drive — tymmo p");
 
-  Object.defineProperty(page.audio, "paused", {
-    value: false,
-    configurable: true,
-  });
+  page.setAudioState({ paused: false });
   page.click("playPauseButton");
   assert.equal(page.document.title, baseTitle);
 });
@@ -127,7 +121,7 @@ test("media session gets metadata and working transport handlers", async () => {
 test("track ends: playlist advances and keeps playing", async () => {
   const page = await createPage();
   page.fire(page.audio, "ended");
-  await new Promise((r) => setTimeout(r, 0));
+  await page.tick();
   assert.equal(page.el("trackTitle").textContent, "International Desert Drive");
   assert.ok(page.calls.play >= 1, "should call play() for the next track");
 });

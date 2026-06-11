@@ -36,7 +36,7 @@ test("controls keep working while docked", async () => {
   page.click("nextButton");
   assert.equal(page.el("trackTitle").textContent, "International Desert Drive");
   page.click("playPauseButton");
-  await new Promise((r) => setTimeout(r, 0));
+  await page.tick();
   assert.equal(page.el("trackStatus").textContent, "Now Playing");
 });
 

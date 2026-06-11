@@ -467,17 +467,6 @@ button:focus-visible {
   display: none;
 }
 
-@media (max-width: 720px) {
-  .player-shell {
-    gap: 0.42rem;
-    padding: 0.25rem 0.4rem;
-  }
-
-  .transport {
-    gap: clamp(0.26rem, 0.7vh, 0.42rem);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
