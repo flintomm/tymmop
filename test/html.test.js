@@ -83,6 +83,14 @@ test("player chrome elements the script depends on all exist", () => {
   }
 });
 
+test("page has exactly one h1 for search engines, visually hidden", () => {
+  const headings = doc.querySelectorAll("h1");
+  assert.equal(headings.length, 1);
+  assert.match(headings[0].textContent, /tymmo p/);
+  assert.ok(headings[0].classList.contains("visually-hidden"));
+  assert.match(read("styles.css"), /\.visually-hidden\s*{[^}]*clip/);
+});
+
 test("background videos are muted, inline, and decorative", () => {
   for (const video of doc.querySelectorAll("video")) {
     assert.ok(video.hasAttribute("muted"), "background video must be muted");

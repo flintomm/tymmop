@@ -80,6 +80,13 @@
   const CROSSFADE_DURATION_MS = 3500;
   const CROSSFADE_LEAD_TIME = 2.5;
   const MOBILE_QUERY = "(max-width: 700px)";
+  const BASE_TITLE = document.title;
+  const STORAGE_KEY = "tymmop:player-state";
+  const RESUME_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+  const RESUME_SAVE_INTERVAL_MS = 3000;
+
+  let pendingResumePosition = null;
+  let lastResumeSaveAt = 0;
 
   audioEl.preload = "metadata";
 
@@ -168,6 +175,49 @@
     elements.playPauseButton.setAttribute("aria-label", isNowPlaying ? "Pause" : "Play");
     elements.playPauseButton.setAttribute("title", isNowPlaying ? "Pause" : "Play");
     elements.status.textContent = isNowPlaying ? "Now Playing" : "Paused";
+    document.title = isNowPlaying
+      ? `▶ ${elements.title.textContent} — tymmo p`
+      : BASE_TITLE;
+  }
+
+  function readResumeState() {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const state = JSON.parse(raw);
+      if (
+        !Number.isInteger(state.trackIndex) ||
+        state.trackIndex < 0 ||
+        state.trackIndex >= playlist.length
+      ) {
+        return null;
+      }
+      if (!Number.isFinite(state.position) || state.position < 0) return null;
+      if (
+        !Number.isFinite(state.savedAt) ||
+        Date.now() - state.savedAt > RESUME_MAX_AGE_MS
+      ) {
+        return null;
+      }
+      return state;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveResumeState() {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          trackIndex: currentTrackIndex,
+          position: audioEl.currentTime || 0,
+          savedAt: Date.now(),
+        })
+      );
+    } catch (error) {
+      /* storage unavailable (private mode etc.) — resume is best-effort */
+    }
   }
 
   function updateTrackTitleMarquee() {
@@ -211,6 +261,7 @@
 
   function loadTrack(index) {
     if (!playlist.length) return;
+    pendingResumePosition = null;
     currentTrackIndex = (index + playlist.length) % playlist.length;
     const track = playlist[currentTrackIndex];
     elements.title.textContent = track.title;
@@ -637,6 +688,14 @@
     elements.nextButton.addEventListener("click", () => stepTrack(1));
 
     audioEl.addEventListener("loadedmetadata", () => {
+      if (
+        pendingResumePosition !== null &&
+        Number.isFinite(audioEl.duration) &&
+        pendingResumePosition < audioEl.duration
+      ) {
+        audioEl.currentTime = pendingResumePosition;
+      }
+      pendingResumePosition = null;
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
       updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
     });
@@ -644,6 +703,10 @@
     audioEl.addEventListener("timeupdate", () => {
       updateTimeDisplay(audioEl.currentTime || 0, audioEl.duration || 0);
       updateProgressFill(audioEl.currentTime || 0, audioEl.duration || 0);
+      if (Date.now() - lastResumeSaveAt >= RESUME_SAVE_INTERVAL_MS) {
+        lastResumeSaveAt = Date.now();
+        saveResumeState();
+      }
     });
 
     audioEl.addEventListener("play", () => {
@@ -666,6 +729,7 @@
         isPlaying = false;
         updatePlayStateVisual(false);
       }
+      saveResumeState();
     });
 
     audioEl.addEventListener("ended", () => {
@@ -723,7 +787,11 @@
 
   function initializePlayer() {
     audioEl.volume = DEFAULT_VOLUME;
-    loadTrack(currentTrackIndex);
+    const resume = readResumeState();
+    loadTrack(resume ? resume.trackIndex : currentTrackIndex);
+    if (resume) {
+      pendingResumePosition = resume.position;
+    }
     updatePlayStateVisual(false);
   }
 

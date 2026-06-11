@@ -57,6 +57,21 @@ test("play/pause updates status, icon, and aria labels", async () => {
   assert.equal(page.el("playPauseButton").getAttribute("aria-label"), "Play");
 });
 
+test("browser tab title follows playback", async () => {
+  const page = await createPage();
+  const baseTitle = page.document.title;
+  page.click("playPauseButton");
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(page.document.title, "▶ Sand Drive — tymmo p");
+
+  Object.defineProperty(page.audio, "paused", {
+    value: false,
+    configurable: true,
+  });
+  page.click("playPauseButton");
+  assert.equal(page.document.title, baseTitle);
+});
+
 test("timeupdate renders clock and fills the seek bar", async () => {
   const page = await createPage();
   page.setAudioState({ duration: 100, currentTime: 25 });

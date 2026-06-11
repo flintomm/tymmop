@@ -15,7 +15,7 @@ function read(rel) {
  * app touches (media element, media session, umami, fetch for config)
  * replaced by inspectable test doubles.
  */
-async function createPage({ config, mobile = false } = {}) {
+async function createPage({ config, mobile = false, storage = {} } = {}) {
   const html = read("index.html");
   const appJs = read("app.js");
   const configJson =
@@ -95,6 +95,10 @@ async function createPage({ config, mobile = false } = {}) {
     }
     return Promise.reject(new Error(`unexpected fetch: ${url}`));
   };
+
+  for (const [key, value] of Object.entries(storage)) {
+    window.localStorage.setItem(key, value);
+  }
 
   window.eval(appJs);
 
