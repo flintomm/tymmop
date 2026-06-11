@@ -81,13 +81,16 @@
 
       <div class="overlay-stage">
         <div class="overlay-wrapper" id="overlayWrapper">
-          <img
-            id="overlayImage"
-            class="overlay-image"
-            src="assets/overlay-car.png"
-            alt="Car interior dashboard overlay"
-            draggable="false"
-          />
+          <picture class="overlay-picture">
+            <source srcset="assets/overlay-car.webp" type="image/webp" />
+            <img
+              id="overlayImage"
+              class="overlay-image"
+              src="assets/overlay-car.png"
+              alt="Car interior dashboard overlay"
+              draggable="false"
+            />
+          </picture>
 
           <div
             class="player-shell"

@@ -13,13 +13,20 @@ function assertFileExists(rel, source) {
   );
 }
 
-test("every relative src/href/poster in index.html points at a real file", () => {
+test("every relative src/href/poster/srcset in index.html points at a real file", () => {
   const html = read("index.html");
-  const refs = [...html.matchAll(/(?:src|href|poster)="([^"]+)"/g)]
+  const refs = [...html.matchAll(/(?:srcset|src|href|poster)="([^"]+)"/g)]
     .map((m) => m[1])
     .filter((url) => !/^(https?:)?\/\//.test(url) && !url.startsWith("#"));
   assert.ok(refs.length > 5, "expected to find local references");
   for (const ref of refs) assertFileExists(ref, "index.html");
+});
+
+test("the overlay ships a webp with png fallback", () => {
+  const html = read("index.html");
+  assert.match(html, /<source srcset="assets\/overlay-car\.webp" type="image\/webp" \/>/);
+  assert.match(html, /src="assets\/overlay-car\.png"/);
+  assertFileExists("assets/overlay-car.webp", "overlay picture");
 });
 
 test("og/twitter card images exist locally at their advertised paths", () => {

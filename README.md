@@ -1,43 +1,71 @@
-## Car Interior Audio Prototype
+# between the spaces — tymmo p
 
-Interactive single-page prototype featuring a full-bleed driving video, an overlay PNG for the car interior, and a custom in-dash audio player.
+Single-page audio-visual site. Looping driving clips crossfade behind an
+illustrated car interior; a custom audio player sits in the dashboard radio
+on desktop and docks as a bottom bar on phones.
 
-### Run locally
-- Place the provided media assets into `assets/`:
-  - `overlay-car.png` (transparent interior overlay)
-  - `road.mp4` with `road.gif` fallback
-  - `track1.mp3`, `track2.mp3`, `track3.mp3`
-- Serve the folder over HTTP so `config/player.json` can be fetched (opening the file directly via `file://` will block the request in most browsers).
-  ```
-  cd car-dashboard-prototype
-  python3 -m http.server
-  ```
-- Visit `http://localhost:8000` in a desktop browser.
+Plain HTML/CSS/JS — no framework, no build step.
 
-### Geometry configuration
-`config/player.json` is the single source of truth for all player and overlay geometry. Percentages are relative to the overlay image dimensions.
+## Run locally
 
-| Key | Description |
+```
+python3 -m http.server
+```
+
+Then open <http://localhost:8000>. Serving over HTTP matters: the page
+fetches `config/player.json`, which `file://` blocks in most browsers.
+
+## Tests
+
+```
+npm install   # once
+npm test
+```
+
+The suite (node `--test` + jsdom) boots the real page and covers: every
+referenced asset exists, meta/social/analytics wiring, playlist stepping
+and wrap-around, play/pause state, seek bar fill, resume-from-last-visit,
+umami event dedupe, media session handlers, mobile dock behavior, and
+config fallbacks. Run it before pushing.
+
+## Editing content — `config/player.json`
+
+The config file is the single source of truth; adding a song never means
+touching JavaScript.
+
+| Key | What it does |
 | --- | --- |
-| `playerLeftPct`, `playerTopPct` | Player anchor point (center) within the overlay. |
-| `playerWidthPct`, `playerHeightPct` | Player footprint relative to overlay. |
-| `overlayScale` | Uniform `scale()` applied to the overlay wrapper. |
-| `overlayTranslateXPct`, `overlayTranslateYPct` | Translation applied after scaling (percent relative to overlay width/height). |
-### Calibration protocol
-1. Start the local server and open the prototype.
-2. Temporarily add a semi-transparent CSS mask inside `.player-shell` to highlight the radio bezel.
-3. Adjust the values in `config/player.json` (left/top/width/height) until the player matches the radio screen.
-4. Remove any temporary mask, verify the alignment at your target desktop resolutions, and save the updated JSON.
+| `playlist` | Array of `{ src, title, artist }`. Audio streams from `media.tymmop.com`. |
+| `videoSequence` | Background clip order. Repeat a file to make it play more often. |
+| `links` | Array of `{ label, url }` rendered as a corner nav (new tab). Empty array hides the nav. |
+| `desktop` | Player/overlay geometry for the dashboard bezel (percentages of the overlay image). |
 
-#### Quick tuning in DevTools
-- Modify the CSS custom properties on `:root` (e.g. `--desktop-player-left-pct`, `--desktop-player-top-pct`, `--desktop-overlay-scale`) in DevTools to see the player move live.
-- Alternatively, run `playerGeometryTools.set({ playerLeftPct: 48.2, playerTopPct: 51.1 })` in the console.
-- `playerGeometryTools.log()` prints the current desktop values; copy them back into `config/player.json` once aligned.
+### Aligning the player with the radio bezel (desktop)
 
-### Test checklist
-- Video loads, loops smoothly, and stays muted until user interaction.
-- GIF fallback appears if the video fails.
-- Overlay preserves aspect ratio on resize with no scrollbars.
-- Custom audio controls operate correctly with mouse, touch, and keyboard (`Space/Enter` toggle, `←/→` seek ±5s).
-- Playlist cycles through the three tracks and wraps around.
-- Layout remains correct at 1920×1080, 1536×864, 1366×768, and 1280×720 orientations.
+Open the browser console and use the built-in helpers:
+
+```js
+playerGeometryTools.set({ playerLeftPct: 48.2, playerTopPct: 51.1 });
+playerGeometryTools.log(); // copy the values back into config/player.json
+```
+
+## Player controls
+
+- Space / Enter: play–pause; `←` / `→`: seek ±5 s; `n` / `p`: next/previous
+- Click or drag the thin bar above the buttons to seek
+- Lock-screen / headphone controls work via the Media Session API
+- Playback position is remembered locally and resumes on the next visit
+
+## Deploying
+
+Cloudflare Pages builds from this repo: pushes to `main` deploy
+production, other branches get preview URLs (no build command — the repo
+root is served as-is). Analytics is Umami Cloud; page views plus
+`track-play` and `link-click` events.
+
+Current state of the takeover:
+
+- `tymmop.com` still points at the previous owner's deployment; switch it
+  to this Pages project in the Cloudflare dashboard when ready.
+- Audio files still stream from the original `media.tymmop.com` bucket —
+  copying them to storage we control is an open task.

@@ -120,6 +120,10 @@ main {
     scale(var(--overlay-scale));
 }
 
+.overlay-picture {
+  display: contents;
+}
+
 .overlay-image {
   position: absolute;
   inset: 0;
